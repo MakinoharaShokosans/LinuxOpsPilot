@@ -1,0 +1,413 @@
+@import '@fontsource-variable/geist';
+@import '@fontsource-variable/geist-mono';
+@import '@fontsource/instrument-serif/400.css';
+@import '@fontsource/instrument-serif/400-italic.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* 主题令牌：RGB 三元组，见 docs/10_frontend/03_visual_design.md §3 */
+@layer base {
+  :root {
+    color-scheme: light;
+    /* 现代高精密基准色：冷调演播室石板白（Studio Slate），彻底告别发黄的纸质感与庸俗纯白 */
+    --c-canvas: 248 250 252;
+    --c-side: 241 245 249;
+    --c-card: 255 255 255;
+    --c-raised: 255 255 255;
+    --c-line: 226 232 240;
+    --c-ink: 15 23 42;
+    --c-mute: 100 116 139;
+    --c-accent: 99 102 241;
+    --c-accent-soft: 238 242 255;
+    --c-accent-2: 139 92 246;
+    --c-ok: 16 185 129;
+    --c-warn: 245 158 11;
+    --c-bad: 239 68 68;
+    --c-code: 241 245 249;
+    --c-code-ink: 15 23 42;
+    /* Linear/Raycast 电气蓝紫色微渐变，只用于最关键的高光点按与焦点引导 */
+    --brand: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #d946ef 100%);
+    /* 1px 发丝倒角边框 + 顶部物理高光 + 多层超软漫射投影，塑造精密五金/高光屏幕质感 */
+    --hairline: 0 0 0 1px rgb(var(--c-ink) / 0.06);
+    --shadow-card:
+      var(--hairline), inset 0 1px 0 0 rgb(255 255 255 / 0.9), 0 1px 2px 0 rgb(15 23 42 / 0.03),
+      0 4px 12px -2px rgb(15 23 42 / 0.05), 0 16px 32px -8px rgb(15 23 42 / 0.06);
+    --shadow-float:
+      var(--hairline), inset 0 1px 0 0 rgb(255 255 255 / 0.95), 0 4px 6px -1px rgb(15 23 42 / 0.04),
+      0 12px 28px -4px rgb(15 23 42 / 0.08), 0 32px 64px -12px rgb(15 23 42 / 0.12);
+    --shadow-bento:
+      var(--hairline), inset 0 1px 0 0 rgb(255 255 255 / 0.8), 0 1px 3px 0 rgb(15 23 42 / 0.03),
+      0 8px 24px -4px rgb(15 23 42 / 0.05);
+    --shadow-glow:
+      0 0 0 1px rgb(var(--c-accent) / 0.25), 0 4px 24px -2px rgb(var(--c-accent) / 0.25);
+    --paper-noise: none;
+    --glow-a: 99 102 241;
+    --glow-b: 139 92 246;
+    --glow-strength: 0.08;
+  }
+  :root[data-theme='dark'] {
+    color-scheme: dark;
+    /* 黑曜石与深钛灰：Linear / Raycast 顶级黑夜美学，深邃通透，拒绝死黑 #000 */
+    --c-canvas: 11 13 18;
+    --c-side: 16 19 26;
+    --c-card: 21 25 35;
+    --c-raised: 28 34 46;
+    --c-line: 38 45 61;
+    --c-ink: 243 244 246;
+    --c-mute: 148 163 184;
+    --c-accent: 129 140 248;
+    --c-accent-soft: 30 27 75;
+    --c-accent-2: 167 139 250;
+    --c-ok: 52 211 153;
+    --c-warn: 251 191 36;
+    --c-bad: 248 113 113;
+    --c-code: 10 12 16;
+    --c-code-ink: 241 245 249;
+    --brand: linear-gradient(135deg, #818cf8 0%, #a78bfa 50%, #f472b6 100%);
+    --hairline: 0 0 0 1px rgb(255 255 255 / 0.08);
+    --shadow-card:
+      var(--hairline), inset 0 1px 0 0 rgb(255 255 255 / 0.08), 0 2px 4px 0 rgb(0 0 0 / 0.3),
+      0 8px 20px -4px rgb(0 0 0 / 0.45), 0 24px 48px -12px rgb(0 0 0 / 0.6);
+    --shadow-float:
+      var(--hairline), inset 0 1px 0 0 rgb(255 255 255 / 0.1), 0 4px 8px 0 rgb(0 0 0 / 0.35),
+      0 16px 36px -6px rgb(0 0 0 / 0.6), 0 48px 88px -16px rgb(0 0 0 / 0.75);
+    --shadow-bento:
+      var(--hairline), inset 0 1px 0 0 rgb(255 255 255 / 0.07), 0 2px 6px 0 rgb(0 0 0 / 0.35),
+      0 12px 28px -6px rgb(0 0 0 / 0.5);
+    --shadow-glow:
+      0 0 0 1px rgb(var(--c-accent) / 0.35), 0 4px 28px -2px rgb(var(--c-accent) / 0.45);
+    --paper-noise: none;
+    --glow-a: 129 140 248;
+    --glow-b: 167 139 250;
+    --glow-strength: 0.12;
+  }
+
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+  body {
+    @apply bg-canvas font-sans text-[14px] leading-relaxed text-ink antialiased;
+    font-feature-settings: 'ss01', 'cv11';
+  }
+  ::selection {
+    background: rgb(var(--c-accent) / 0.22);
+  }
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: rgb(var(--c-mute) / 0.25) transparent;
+  }
+  button,
+  select,
+  textarea,
+  input {
+    font-family: inherit;
+  }
+  /* 键盘聚焦：柔和的发光外环，清晰可辨但不破坏版面 */
+  :focus-visible {
+    outline: 2px solid rgb(var(--c-accent) / 0.45);
+    outline-offset: 2px;
+    border-radius: 8px;
+  }
+  /* 自研超细胶囊滚动条：细(6px)、圆、半透明；悬停时微深，杜绝浏览器默认原生粗条 */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: rgb(var(--c-mute) / 0.22);
+    border-radius: 9999px;
+    transition: background-color 0.2s ease;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgb(var(--c-mute) / 0.45);
+  }
+  summary {
+    list-style: none;
+  }
+  summary::-webkit-details-marker {
+    display: none;
+  }
+}
+
+@layer components {
+  .nav-item {
+    @apply relative flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-left text-[13.5px] text-mute transition-colors duration-150 hover:bg-ink/[0.05] hover:text-ink;
+  }
+  .nav-item[aria-current='true'] {
+    @apply font-semibold text-ink;
+  }
+  /* 纸面：发丝边、顶部高光、多层漫射影，加一层极淡的纸纹，见 03_visual_design.md §1 */
+  .paper {
+    background-color: rgb(var(--c-card));
+    background-image: var(--paper-noise);
+    box-shadow: var(--shadow-card);
+  }
+  .soft-card {
+    @apply paper rounded-[22px];
+  }
+  .bento-card {
+    background-color: rgb(var(--c-card));
+    background-image: var(--paper-noise);
+    box-shadow: var(--shadow-bento);
+    border-radius: 22px;
+    position: relative;
+    overflow: hidden;
+    transition:
+      transform 0.2s cubic-bezier(0.22, 1, 0.36, 1),
+      box-shadow 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .bento-card:hover {
+    box-shadow: var(--shadow-float);
+  }
+  .glass-island {
+    @apply bg-raised/85 backdrop-blur-2xl backdrop-saturate-150;
+    box-shadow: var(--shadow-float);
+  }
+  /* 信封内衬的防窥纹：极细的斜线，只铺在少数“衬里”区域 */
+  .tint {
+    background-image: repeating-linear-gradient(
+      135deg,
+      rgb(var(--c-ink) / 0.045) 0 1px,
+      transparent 1px 7px
+    );
+  }
+  /* 信纸的横线：行高 24px，线随内容滚动，文字落在线上 */
+  .ruled {
+    background-image: repeating-linear-gradient(
+      to bottom,
+      transparent 0 23px,
+      rgb(var(--c-ink) / 0.075) 23px 24px
+    );
+    background-attachment: local;
+    line-height: 24px;
+  }
+  /* 邮戳：虚线框的小标签，用来标“已自定义”之类的状态 */
+  .stamp {
+    @apply inline-flex items-center rounded-md px-1.5 text-[10px] font-semibold uppercase leading-4 tracking-[0.1em] text-accent;
+    border: 1px dashed rgb(var(--c-accent) / 0.55);
+    transform: rotate(-1.5deg);
+  }
+  .glass {
+    @apply bg-canvas/70 backdrop-blur-xl backdrop-saturate-150;
+  }
+  /* 输入框：像压在纸上的凹槽，聚焦时抬起并出现柔和的光环 */
+  .field {
+    @apply w-full rounded-xl bg-ink/[0.04] px-3 py-2 text-sm text-ink outline-none transition-[background-color,box-shadow] placeholder:text-mute/60;
+    box-shadow:
+      inset 0 1px 2px rgb(40 32 20 / 0.06),
+      0 0 0 1px rgb(var(--c-ink) / 0.06);
+  }
+  .field:focus {
+    background-color: rgb(var(--c-card));
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.5),
+      0 0 0 1px rgb(var(--c-accent) / 0.35),
+      0 0 0 4px rgb(var(--c-accent) / 0.12);
+  }
+  .bg-brand {
+    background-image: var(--brand);
+  }
+  .text-brand {
+    background-image: var(--brand);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  /* 隐藏滚动条但保留滚轮、触控板与键盘滚动 */
+  .no-scrollbar {
+    scrollbar-width: none;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .eyebrow {
+    @apply text-2xs font-semibold uppercase tracking-[0.12em] text-mute/80;
+  }
+}
+
+/* L0 环境层：两团极淡的径向光晕 + 细噪点。运行中时缓慢呼吸。 */
+.ambient {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+.ambient::before,
+.ambient::after {
+  content: '';
+  position: absolute;
+  width: 62vmax;
+  height: 62vmax;
+  border-radius: 9999px;
+  filter: blur(40px);
+  opacity: 0.8;
+}
+.ambient::before {
+  top: -30vmax;
+  left: -18vmax;
+  background: radial-gradient(closest-side, rgb(var(--glow-a) / var(--glow-strength)), transparent);
+}
+.ambient::after {
+  bottom: -34vmax;
+  right: -20vmax;
+  background: radial-gradient(closest-side, rgb(var(--glow-b) / var(--glow-strength)), transparent);
+}
+.ambient[data-live='true']::before,
+.ambient[data-live='true']::after {
+  animation: breathe 8s ease-in-out infinite;
+}
+.ambient[data-live='true']::after {
+  animation-delay: -4s;
+}
+.grain {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.035;
+  mix-blend-mode: multiply;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+[data-theme='dark'] .grain {
+  mix-blend-mode: screen;
+  opacity: 0.025;
+}
+
+/* 代码高亮（rehype-highlight 的类名），跟随主题令牌 */
+.hljs-keyword,
+.hljs-selector-tag,
+.hljs-built_in {
+  color: rgb(var(--c-accent));
+}
+.hljs-string,
+.hljs-attr {
+  color: #0d9488;
+}
+.hljs-number,
+.hljs-literal {
+  color: rgb(var(--c-accent-2));
+}
+.hljs-comment {
+  color: rgb(var(--c-code-ink) / 0.5);
+  font-style: italic;
+}
+.hljs-title,
+.hljs-function {
+  color: #d97706;
+}
+[data-theme='dark'] .hljs-string,
+[data-theme='dark'] .hljs-attr {
+  color: rgb(var(--c-ok));
+}
+[data-theme='dark'] .hljs-title,
+[data-theme='dark'] .hljs-function {
+  color: rgb(var(--c-warn));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+/* 输入台运行中的流光边框 */
+@property --spin {
+  syntax: '<angle>';
+  inherits: false;
+  initial-value: 0deg;
+}
+@keyframes spin-border {
+  to {
+    --spin: 360deg;
+  }
+}
+
+/* Markdown 排版：无边框、宽松行距，见 03_visual_design.md §6.3 */
+.prose-agent {
+  @apply max-w-none break-words text-[15px] leading-[1.75] text-ink;
+}
+.prose-agent > * + * {
+  @apply mt-4;
+}
+.prose-agent h1 {
+  @apply mt-6 text-[24px] font-semibold leading-tight tracking-tight;
+}
+.prose-agent h2 {
+  @apply mt-7 text-[19px] font-semibold leading-snug tracking-tight;
+}
+.prose-agent h3 {
+  @apply mt-5 text-[16px] font-semibold;
+}
+.prose-agent h4 {
+  @apply mt-4 text-[15px] font-semibold text-ink/80;
+}
+.prose-agent strong {
+  @apply font-semibold;
+}
+.prose-agent ul {
+  @apply list-disc pl-5 marker:text-mute/60;
+}
+.prose-agent ol {
+  @apply list-decimal pl-5 marker:text-mute;
+}
+.prose-agent li + li {
+  @apply mt-1.5;
+}
+.prose-agent li > p {
+  @apply mt-0;
+}
+.prose-agent blockquote {
+  @apply relative pl-4 text-ink/70;
+}
+.prose-agent blockquote::before {
+  content: '';
+  @apply absolute inset-y-1 left-0 w-[3px] rounded-full bg-brand opacity-70;
+}
+.prose-agent :not(pre) > code {
+  @apply rounded-md bg-ink/[0.06] px-1.5 py-0.5 font-mono text-[0.85em];
+}
+.prose-agent pre {
+  @apply overflow-x-auto px-4 pb-4 pt-2 font-mono text-[12.5px] leading-relaxed;
+}
+.prose-agent pre code {
+  @apply bg-transparent p-0;
+}
+.prose-agent table {
+  @apply w-full border-collapse overflow-hidden rounded-xl text-sm;
+}
+.prose-agent thead {
+  @apply bg-ink/[0.04];
+}
+.prose-agent th {
+  @apply px-3 py-2 text-left text-[13px] font-semibold;
+}
+.prose-agent td {
+  @apply px-3 py-2 align-top;
+}
+.prose-agent tbody tr + tr td {
+  @apply border-t border-ink/[0.06];
+}
+.prose-agent hr {
+  @apply my-6 border-0 border-t border-ink/[0.08];
+}
+
+/* 连续曲率：支持 corner-shape 的浏览器把圆角升级为超椭圆，其余保持普通圆角 */
+@supports (corner-shape: squircle) {
+  .paper,
+  .soft-card,
+  .bento-card,
+  .glass-island,
+  [role='dialog'] {
+    corner-shape: squircle;
+  }
+}

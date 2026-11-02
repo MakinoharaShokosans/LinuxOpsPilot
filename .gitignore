@@ -1,0 +1,42 @@
+# 密钥与本机配置——绝不入库
+.env
+.env.*
+!.env.example
+*.token
+api_token
+canary_salt
+
+# 数据目录（数据库、轨迹、产物、日志）
+storage/
+eval_reports/
+*.db
+*.db-wal
+*.db-shm
+
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.hypothesis/
+.mypy_cache/
+.ruff_cache/
+.import_linter_cache/
+.coverage
+coverage.xml
+htmlcov/
+dist/
+build/
+*.egg-info/
+
+# Node / 前端
+node_modules/
+.vite/
+.turbo/
+*.tsbuildinfo
+
+# 编辑器与系统
+.claude/
+.idea/
+.vscode/
+.DS_Store

@@ -1,0 +1,361 @@
+import { AnimatePresence, motion } from 'motion/react';
+import { ChevronDown, ChevronRight, X } from 'lucide-react';
+import { useEffect, useRef, type ComponentProps, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
+import { useUiStore } from '../../stores/useUiStore';
+import { cn } from '../../utils/text';
+import { Tip } from './Tooltip';
+import type { Side } from './useAnchor';
+
+/** 动效令牌，见 docs/10_frontend/03_visual_design.md §8 */
+export const EASE_OUT = [0.22, 1, 0.36, 1] as const;
+export const SPRING = { type: 'spring', stiffness: 380, damping: 34 } as const;
+
+type Variant = 'primary' | 'secondary' | 'danger' | 'ghost';
+
+const VARIANTS: Record<Variant, string> = {
+  primary:
+    'bg-ink text-canvas shadow-card hover:bg-ink/90 active:bg-ink disabled:bg-ink/15 disabled:text-mute disabled:shadow-none',
+  secondary:
+    'bg-ink/[0.05] text-ink hover:bg-ink/[0.09] active:bg-ink/[0.12] disabled:text-mute border border-ink/[0.06]',
+  danger:
+    'bg-bad text-white shadow-card hover:brightness-105 active:brightness-95 disabled:opacity-40',
+  ghost: 'text-mute hover:bg-ink/[0.06] hover:text-ink active:bg-ink/[0.1] disabled:text-mute/40',
+};
+
+export function Button({
+  variant = 'secondary',
+  className,
+  ...props
+}: ComponentProps<'button'> & { variant?: Variant }) {
+  return (
+    <button
+      className={cn(
+        'inline-flex select-none items-center justify-center gap-1.5 rounded-base px-3.5 py-1.5 text-[13px] font-semibold',
+        'transition-[background-color,color,border-color,box-shadow,transform] duration-150 ease-out active:scale-[0.97]',
+        'disabled:cursor-not-allowed disabled:active:scale-100',
+        VARIANTS[variant],
+        className,
+      )}
+      {...props}
+    />
+  );
+}
+
+export function IconButton({
+  className,
+  active,
+  label,
+  hint,
+  side,
+  ...props
+}: ComponentProps<'button'> & { label: string; active?: boolean; hint?: string; side?: Side }) {
+  return (
+    <Tip label={label} hint={hint} side={side}>
+      <button
+        aria-label={label}
+        className={cn(
+          'inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-mute transition-[background-color,color,transform] duration-150',
+          'hover:bg-ink/[0.07] hover:text-ink active:scale-[0.94] disabled:cursor-not-allowed disabled:opacity-40',
+          active && 'bg-ink/[0.07] text-ink',
+          className,
+        )}
+        {...props}
+      />
+    </Tip>
+  );
+}
+
+const TONES = {
+  slate: 'bg-ink/[0.05] text-mute border border-ink/[0.06]',
+  green: 'bg-ok/12 text-ok border border-ok/20',
+  amber: 'bg-warn/12 text-warn border border-warn/25',
+  red: 'bg-bad/12 text-bad border border-bad/20',
+  blue: 'bg-accent/12 text-accent border border-accent/20',
+  violet: 'bg-accent-2/12 text-accent-2 border border-accent-2/20',
+} as const;
+
+export type Tone = keyof typeof TONES;
+
+export function Badge({
+  tone = 'slate',
+  children,
+  className,
+}: {
+  tone?: Tone;
+  children: ReactNode;
+  className?: string;
+}) {
+  return (
+    <span
+      className={cn(
+        'inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold',
+        TONES[tone],
+        className,
+      )}
+    >
+      {children}
+    </span>
+  );
+}
+
+/** 状态胶囊：图标 + 文字；`live` 时有一道流光扫过 */
+export function StatusPill({
+  tone,
+  icon,
+  live,
+  children,
+  className,
+  label,
+}: {
+  tone: Tone;
+  icon?: ReactNode;
+  live?: boolean;
+  children: ReactNode;
+  className?: string;
+  /** 只显示图标时给读屏用的完整状态 */
+  label?: string;
+}) {
+  return (
+    <span
+      aria-label={label}
+      className={cn(
+        'relative inline-flex shrink-0 items-center gap-1.5 overflow-hidden whitespace-nowrap rounded-full py-1 pl-2 pr-2.5 text-xs font-semibold',
+        TONES[tone],
+        className,
+      )}
+    >
+      {live && (
+        <span
+          aria-hidden
+          className="pointer-events-none absolute inset-y-0 left-0 w-1/2 animate-sheen bg-gradient-to-r from-transparent via-white/40 to-transparent dark:via-white/15"
+        />
+      )}
+      {icon}
+      {children}
+    </span>
+  );
+}
+
+export function Kbd({ children }: { children: ReactNode }) {
+  return (
+    <kbd className="inline-flex h-5 min-w-5 items-center justify-center rounded-md bg-ink/[0.06] px-1 font-mono text-[10.5px] font-medium text-mute">
+      {children}
+    </kbd>
+  );
+}
+
+/** 高度自动动画的折叠区 */
+export function Reveal({ open, children }: { open: boolean; children: ReactNode }) {
+  return (
+    <AnimatePresence initial={false}>
+      {open && (
+        <motion.div
+          key="reveal"
+          // 只在动画期间裁切；展开后放开，里面的下拉弹层才不会被裁掉
+          initial={{ height: 0, opacity: 0, overflow: 'hidden' }}
+          animate={{ height: 'auto', opacity: 1, transitionEnd: { overflow: 'visible' } }}
+          exit={{ height: 0, opacity: 0, overflow: 'hidden' }}
+          transition={{ duration: 0.22, ease: EASE_OUT }}
+        >
+          {children}
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+}
+
+export function Chevron({ open, size = 14 }: { open: boolean; size?: number }) {
+  return (
+    <ChevronRight
+      size={size}
+      aria-hidden
+      className={cn(
+        'shrink-0 text-mute transition-transform duration-200 ease-out',
+        open && 'rotate-90',
+      )}
+    />
+  );
+}
+
+/** 右侧栏的可折叠卡片：标题行点击折叠，折叠状态记在本地偏好 */
+export function Card({
+  id,
+  title,
+  icon,
+  aside,
+  children,
+  className,
+}: {
+  id: string;
+  title: string;
+  icon?: ReactNode;
+  aside?: ReactNode;
+  children?: ReactNode;
+  className?: string;
+}) {
+  const open = useUiStore((s) => !s.collapsedCards.includes(id));
+  const toggle = useUiStore((s) => s.toggleCard);
+  const hasChildren = Boolean(children);
+  return (
+    <section
+      aria-label={title}
+      className={cn('bg-transparent px-1 py-1.5', className)}
+    >
+      <header className="flex items-center gap-2">
+        <button
+          className={cn(
+            'flex min-w-0 flex-1 items-center gap-2 text-left text-[14px] font-semibold',
+            !hasChildren && 'cursor-default',
+          )}
+          aria-expanded={hasChildren ? open : undefined}
+          onClick={hasChildren ? () => toggle(id) : undefined}
+        >
+          {icon && <span className="text-mute">{icon}</span>}
+          <span className="truncate">{title}</span>
+          {hasChildren && (
+            <ChevronDown
+              size={14}
+              aria-hidden
+              className={cn(
+                'shrink-0 text-mute transition-transform duration-200',
+                !open && '-rotate-90',
+              )}
+            />
+          )}
+        </button>
+        {aside}
+      </header>
+      {hasChildren && (
+        <Reveal open={open}>
+          <div className="pt-3">{children}</div>
+        </Reveal>
+      )}
+    </section>
+  );
+}
+
+/**
+ * 信封的封舌：弹窗顶部一片朝下的 V 形，内衬铺防窥纹，尖端一枚蜡封小圆点。
+ * 纯装饰，不拦截点击；颜色全部来自令牌，明暗主题自动切换。
+ */
+function EnvelopeFlap() {
+  return (
+    <div aria-hidden className="pointer-events-none relative h-[30px] shrink-0">
+      <div
+        className="tint absolute inset-0"
+        style={{ clipPath: 'polygon(0 0, 100% 0, 100% 10%, 50% 97%, 0 10%)' }}
+      />
+      <svg
+        viewBox="0 0 100 30"
+        preserveAspectRatio="none"
+        className="absolute inset-0 h-full w-full"
+      >
+        <path d="M0 0H100V3L50 29L0 3Z" fill="rgb(var(--c-side) / 0.55)" />
+        <path
+          d="M0 3L50 29L100 3"
+          fill="none"
+          stroke="rgb(var(--c-ink) / 0.12)"
+          strokeWidth="1"
+          vectorEffect="non-scaling-stroke"
+          strokeLinejoin="round"
+        />
+      </svg>
+      <span
+        className="absolute bottom-[-3px] left-1/2 h-[11px] w-[11px] -translate-x-1/2 rounded-full bg-accent/85"
+        style={{
+          boxShadow:
+            'inset 0 1px 1px rgb(255 255 255 / 0.45), inset 0 -1px 1px rgb(0 0 0 / 0.12), 0 1px 3px rgb(40 32 20 / 0.25)',
+        }}
+      />
+    </div>
+  );
+}
+
+/**
+ * 遮罩 + 居中对话框的外壳：Esc 关闭，焦点落在对话框。对话框是一封信：纸面、发丝边、封舌。
+ * `className` 作用在整封信（宽高），`bodyClassName` 作用在封舌下面的正文区。
+ * 渲染到 body：祖先上的 backdrop-filter / transform 会成为 fixed 定位的包含块，把对话框困在侧栏里。
+ */
+export function Overlay({
+  label,
+  onClose,
+  children,
+  className,
+  bodyClassName,
+  flap = true,
+}: {
+  label: string;
+  onClose: () => void;
+  children: ReactNode;
+  className?: string;
+  bodyClassName?: string;
+  flap?: boolean;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
+    window.addEventListener('keydown', onKey);
+    ref.current?.focus();
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
+  return createPortal(
+    <div className="fixed inset-0 z-modal flex items-center justify-center p-4">
+      <motion.div
+        aria-hidden
+        className="absolute inset-0 bg-ink/15 backdrop-blur-md dark:bg-black/50"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.2 }}
+        onClick={onClose}
+      />
+      <motion.div
+        ref={ref}
+        role="dialog"
+        aria-modal="true"
+        aria-label={label}
+        tabIndex={-1}
+        initial={{ opacity: 0, scale: 0.96, y: 10 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        transition={{ type: 'spring', stiffness: 320, damping: 30 }}
+        className={cn(
+          'paper relative flex max-h-[90vh] w-full flex-col overflow-hidden rounded-[24px] bg-raised shadow-float outline-none border border-ink/[0.06] dark:border-white/[0.08]',
+          className,
+        )}
+      >
+        {flap && <EnvelopeFlap />}
+        <div className={cn('min-h-0 flex-1 overflow-auto', bodyClassName)}>{children}</div>
+      </motion.div>
+    </div>,
+    document.body,
+  );
+}
+
+export function Modal({
+  title,
+  onClose,
+  children,
+  wide = false,
+}: {
+  title: string;
+  onClose: () => void;
+  children: ReactNode;
+  wide?: boolean;
+}) {
+  return (
+    <Overlay
+      label={title}
+      onClose={onClose}
+      className={wide ? 'max-w-3xl' : 'max-w-md'}
+      bodyClassName="px-6 pb-6 pt-3"
+    >
+      <div className="mb-4 flex items-center justify-between">
+        <h2 className="text-[17px] font-semibold text-ink">{title}</h2>
+        <IconButton label="关闭" onClick={onClose}>
+          <X size={16} />
+        </IconButton>
+      </div>
+      {children}
+    </Overlay>
+  );
+}
