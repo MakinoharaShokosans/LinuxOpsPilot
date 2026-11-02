@@ -49,7 +49,7 @@ def _rel(root: Path, path: Path) -> str:
     try:
         return path.relative_to(root.resolve()).as_posix()
     except ValueError:
-        return str(path)
+        return path.as_posix()
 
 
 def numbered(first: int, lines: list[str]) -> str:
@@ -469,11 +469,12 @@ class WriteFileTool(AgentTool):
     def _backup(self, path: Path, rel: str) -> bool:
         if self._backup_dir is None:
             return False
-        target = self._backup_dir / rel
+        clean = Path(rel).relative_to(Path(rel).anchor) if Path(rel).is_absolute() else Path(rel)
+        target = self._backup_dir / clean
         n = 0
         while target.exists():
             n += 1
-            target = self._backup_dir / f"{rel}.{n}"
+            target = self._backup_dir / f"{clean}.{n}"
         try:
             target.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(path, target)

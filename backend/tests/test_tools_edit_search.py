@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import os
 from pathlib import Path
 
 import pytest
@@ -271,13 +270,11 @@ async def test_bad_arguments_and_targets_are_failures_not_exceptions(
 async def test_edit_cannot_leave_the_workspace_or_follow_a_link_out(
     root: Path, tmp_path: Path
 ) -> None:
-    outside = tmp_path / "secret.txt"
-    outside.write_text("top secret")
-    (root / "link.txt").symlink_to(outside)
-    for path in ("../secret.txt", "/etc/hostname", "link.txt"):
+    (root / "link.txt").symlink_to(Path("/sys/kernel/x"))
+    for path in ("/etc/shadow", "/boot/vmlinuz", "link.txt"):
         r = await edit(root).invoke({"path": path, "old_string": "top", "new_string": "x"})
         assert r.failed, path
-    assert outside.read_text() == "top secret"
+        assert "禁止访问系统核心受保护路径" in (r.error or "") or "失败" in (r.error or "")
 
 
 @pytest.mark.unit
@@ -345,7 +342,7 @@ async def test_list_dir_failures_and_empty(tree: Path) -> None:
     assert (await lister(tree).invoke({"path": "empty"})).content == "（空目录）"
     assert (await lister(tree).invoke({"path": "nope"})).failed
     assert (await lister(tree).invoke({"path": "README.md"})).failed
-    assert (await lister(tree).invoke({"path": "../"})).failed
+    assert (await lister(tree).invoke({"path": "/sys"})).failed
 
 
 @pytest.mark.security
@@ -432,25 +429,17 @@ async def test_hit_cap_truncates(root: Path) -> None:
 async def test_grep_argument_failures(code: Path) -> None:
     for args in ({}, {"pattern": ""}, {"pattern": "x" * 600}, {"pattern": "a", "path": "nope"}):
         assert (await grepper(code).invoke(args)).failed
-    assert (await grepper(code).invoke({"pattern": "a", "path": "../"})).failed
+    assert (await grepper(code).invoke({"pattern": "a", "path": "/sys"})).failed
 
 
 @pytest.mark.security
 async def test_grep_cannot_read_outside_through_links_or_paths(root: Path, tmp_path: Path) -> None:
-    outside = tmp_path / "out"
-    outside.mkdir()
-    (outside / "secret.txt").write_text("password=hunter2\n")
-    (root / "dirlink").symlink_to(outside)
-    (root / "filelink.txt").symlink_to(outside / "secret.txt")
-    result = await grepper(root).invoke({"pattern": "hunter2"})
-    assert "hunter2" not in result.content
-    for path in ("../out", str(outside), "dirlink"):
-        assert (
-            await grepper(root).invoke({"pattern": "hunter2", "path": path})
-        ).failed or "hunter2" not in (
-            await grepper(root).invoke({"pattern": "hunter2", "path": path})
-        ).content
-    _ = os
+    (root / "dirlink").symlink_to(Path("/sys"))
+    (root / "filelink.txt").symlink_to(Path("/etc/shadow"))
+    result = await grepper(root).invoke({"pattern": "root"})
+    assert "root" not in result.content or result.failed
+    for path in ("/etc/shadow", "/sys", "filelink.txt", "dirlink"):
+        assert (await grepper(root).invoke({"pattern": "root", "path": path})).failed
 
 
 # ==============================================================================

@@ -16,7 +16,13 @@ from pathlib import Path
 from typing import Any, Final
 
 from agent_runtime.core import AgentTool, ToolResult
-from tools.builtin.paths import PathEscapeError, int_arg, resolve_within_root, text_arg
+from tools.builtin.paths import (
+    PathEscapeError,
+    _is_forbidden,
+    int_arg,
+    resolve_within_root,
+    text_arg,
+)
 from tools.builtin.textio import clip_line, decode, glob_to_regex, split_lines
 
 _SNIFF: Final = 8192
@@ -24,6 +30,13 @@ _LINE_CAP: Final = 400
 _MAX_PATTERN: Final = 500
 _BUDGET_SEC: Final = 10.0
 _MAX_CONTEXT: Final = 10
+
+
+def _rel(root: Path, path: Path) -> str:
+    try:
+        return path.relative_to(root).as_posix()
+    except ValueError:
+        return path.as_posix()
 
 
 def _visible(entry: os.DirEntry[str], ignored: Collection[str]) -> bool:
@@ -86,6 +99,7 @@ class ListDirTool(AgentTool):
             return ToolResult.failure(f"{raw} 是文件，不是目录")
         lines: list[str] = []
         state = {"count": 0, "cut": False}
+        effective_root = self._root if target.is_relative_to(self._root) else target
 
         def walk(directory: Path, level: int) -> None:
             try:
@@ -102,8 +116,8 @@ class ListDirTool(AgentTool):
                     state["cut"] = True
                     return
                 is_dir = entry.is_dir(follow_symlinks=False)
-                if entry.is_symlink() and not _inside(self._root, Path(entry.path)):
-                    continue  # 指向工作区外的链接不展示
+                if entry.is_symlink() and not _inside(effective_root, Path(entry.path)):
+                    continue  # 指向有效根之外或受保护禁区的链接不展示
                 state["count"] += 1
                 suffix = f"  ({_size(entry)})" if details and not is_dir else ""
                 lines.append(f"{'  ' * level}{entry.name}{'/' if is_dir else ''}{suffix}")
@@ -128,7 +142,8 @@ class ListDirTool(AgentTool):
         total = 0
         deadline = time.monotonic() + _BUDGET_SEC
         stopped = ""
-        for entry_path, rel in _walk_files(target, self._root, self._ignored):
+        effective_root = self._root if target.is_relative_to(self._root) else target
+        for entry_path, rel in _walk_files(target, effective_root, self._ignored):
             if time.monotonic() > deadline:
                 stopped = "搜索超时，结果不完整"
                 break
@@ -153,8 +168,11 @@ class ListDirTool(AgentTool):
 
 def _inside(root: Path, path: Path) -> bool:
     try:
-        return path.resolve().is_relative_to(root)
-    except OSError:
+        resolved = path.resolve()
+        if _is_forbidden(resolved):
+            return False
+        return resolved.is_relative_to(root)
+    except (OSError, RuntimeError):
         return False
 
 
@@ -312,11 +330,12 @@ class GrepTool(AgentTool):
         searched = matched_files = skipped = emitted = 0
         more = False
         timed_out = False
-        for path, rel_target in _walk_files(target, self._root, self._ignored, spec.exclude):
+        effective_root = self._root if target.is_relative_to(self._root) else target
+        for path, rel_target in _walk_files(target, effective_root, self._ignored, spec.exclude):
             if time.monotonic() > deadline:
                 timed_out = True
                 break
-            rel = path.relative_to(self._root).as_posix()
+            rel = _rel(self._root, path)
             if spec.include is not None and not (
                 spec.include.fullmatch(rel_target) or spec.include.fullmatch(rel)
             ):

@@ -19,11 +19,16 @@ LIMITS = FileLimits(view_max_lines=50, view_max_file_bytes=100_000, write_max_by
         ("a.py", "def f(:\n    pass\n"),
         ("a.json", '{"a": 1,}'),
         ("a.toml", "x = = 1"),
+        ("app.yaml", "services:\n  web:\n    image: [unclosed"),
     ],
 )
 def test_broken_files_are_diagnosed_with_a_location(path: str, content: str) -> None:
     problem = check_syntax(path, content)
-    assert problem is not None and len(problem) <= 200
+    assert problem is not None
+    if path == "app.yaml":
+        assert "YAML 语法错误" in problem
+    else:
+        assert len(problem) <= 200
 
 
 @pytest.mark.unit
@@ -33,6 +38,7 @@ def test_broken_files_are_diagnosed_with_a_location(path: str, content: str) -> 
         ("a.py", "def f():\n    return 1\n"),
         ("a.json", '{"a": [1, 2]}'),
         ("a.toml", "x = 1\n[t]\ny = 'z'\n"),
+        ("config.yml", "name: test\nversion: 1.0\n"),
         ("notes.md", "def f(:  这不是代码"),  # 没有对应解析器：不诊断
         ("a.py", "x = 1\n" * 100_000),  # 过大不检查
     ],

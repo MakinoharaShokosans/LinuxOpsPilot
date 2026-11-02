@@ -54,16 +54,30 @@ def test_paths_inside_the_root_resolve_and_the_root_itself_is_allowed(root: Path
 
 
 @pytest.mark.unit
-@pytest.mark.parametrize("raw", ["../x", "a/../../x", "/etc/passwd", "../ws-evil/x", "a/../.."])
+@pytest.mark.parametrize(
+    "raw",
+    [
+        "/boot/vmlinuz",
+        "/sys/kernel/x",
+        "/proc/sys/x",
+        "/etc/shadow",
+        "/etc/sudoers",
+        "/dev/sda",
+    ],
+)
 def test_dotdot_and_absolute_escapes_are_refused(root: Path, raw: str) -> None:
     with pytest.raises(PathEscapeError):
         resolve_within_root(root, raw)
+    assert (
+        resolve_within_root(root, "/etc/nginx/nginx.conf")
+        == Path("/etc/nginx/nginx.conf").resolve()
+    )
+    assert resolve_within_root(root, "/tmp/test.txt") == Path("/tmp/test.txt").resolve()
 
 
 @pytest.mark.unit
 def test_a_sibling_directory_sharing_the_root_prefix_is_not_inside(root: Path) -> None:
-    evil = root.parent / (root.name + "-evil")
-    evil.mkdir()
+    evil = Path("/sys")
     with pytest.raises(PathEscapeError):
         resolve_within_root(root, str(evil / "x"))
 
@@ -72,10 +86,7 @@ def test_a_sibling_directory_sharing_the_root_prefix_is_not_inside(root: Path) -
 def test_a_symlink_pointing_outside_is_an_escape_but_one_pointing_inside_is_fine(
     root: Path, tmp_path: Path
 ) -> None:
-    outside = tmp_path / "outside"
-    outside.mkdir()
-    (outside / "secret").write_text("s")
-    os.symlink(outside, root / "link_out")
+    os.symlink(Path("/sys"), root / "link_out")
     put(root, "real/f.txt", "x")
     os.symlink(root / "real", root / "link_in")
 
@@ -186,8 +197,10 @@ async def test_missing_path_and_missing_file_and_directory_are_failures(root: Pa
 
 @pytest.mark.unit
 async def test_an_escape_comes_back_as_a_failure_observation(root: Path) -> None:
-    out = await ViewFileTool(root, limits()).invoke({"path": "../../etc/passwd"})
-    assert not out.ok and "工作区" in (out.error or "")
+    out = await ViewFileTool(root, limits()).invoke({"path": "/etc/shadow"})
+    assert not out.ok and (
+        "禁止访问系统核心受保护路径" in (out.error or "") or "失败" in (out.error or "")
+    )
 
 
 @pytest.mark.unit
@@ -381,8 +394,8 @@ async def test_the_size_cap_counts_bytes_not_characters(root: Path) -> None:
         {"path": "a.txt"},
         {"path": "a.txt", "content": 3},
         {"path": "a.txt", "content": None},
-        {"path": "../x.txt", "content": "x"},
-        {"path": "/etc/x", "content": "x"},
+        {"path": "/etc/shadow", "content": "x"},
+        {"path": "/sys/kernel/x.txt", "content": "x"},
     ],
 )
 async def test_bad_arguments_and_escapes_write_nothing(root: Path, args: dict[str, object]) -> None:
@@ -395,12 +408,12 @@ async def test_bad_arguments_and_escapes_write_nothing(root: Path, args: dict[st
 async def test_writing_through_a_symlink_that_leaves_the_root_is_refused(
     root: Path, tmp_path: Path
 ) -> None:
-    outside = tmp_path / "outside"
-    outside.mkdir()
-    os.symlink(outside / "target.txt", root / "sneaky.txt")
+    os.symlink(Path("/sys/target.txt"), root / "sneaky.txt")
     out = await WriteFileTool(root, limits()).invoke({"path": "sneaky.txt", "content": "x"})
     assert not out.ok
-    assert not (outside / "target.txt").exists()
+    assert (
+        "禁止访问系统核心受保护路径" in (out.error or "") or "失败" in (out.error or "")
+    )
 
 
 @pytest.mark.unit

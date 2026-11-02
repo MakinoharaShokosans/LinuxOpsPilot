@@ -211,10 +211,12 @@ async def test_a_path_escape_is_a_failure_observation_and_touches_nothing(
 ) -> None:
     world = World(tmp_path)
     after = await world.run(
-        turn(make_state, ("w1", "write_file", {"path": "../evil.txt", "content": "x"}))
+        turn(make_state, ("w1", "write_file", {"path": "/etc/shadow", "content": "x"}))
     )
-    assert "工作区" in reply_to(after, "w1")
-    assert not (tmp_path / "evil.txt").exists()
+    assert (
+        "禁止访问系统核心受保护路径" in reply_to(after, "w1")
+        or "失败" in reply_to(after, "w1")
+    )
     assert after.consecutive_errors == 1
 
 

@@ -60,7 +60,11 @@ def hash_bytes(data: bytes) -> str:
 
 def within_workspace(root: Path, relative: str) -> Path:
     """解析工作区内的相对路径；越界（含符号链接）抛 ``PathEscapeError``。"""
-    return resolve_within_root(root, relative)
+    resolved = resolve_within_root(root, relative)
+    base = root.resolve()
+    if resolved != base and not resolved.is_relative_to(base):
+        raise PathEscapeError("路径必须位于工作区内")
+    return resolved
 
 
 def read_workspace_file(root: Path, relative: str, max_bytes: int) -> tuple[str, str, int]:
