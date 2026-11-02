@@ -19,10 +19,11 @@ LIMITS = SkillLimits(
 )
 EXPECTED = {
     "shell_best_practices",
-    "workspace_explorer",
-    "bugfix_workflow",
-    "safe_refactoring",
-    "code_review",
+    "linux_troubleshooting",
+    "service_management",
+    "docker_container_ops",
+    "safe_config_change",
+    "log_analysis",
 }
 
 

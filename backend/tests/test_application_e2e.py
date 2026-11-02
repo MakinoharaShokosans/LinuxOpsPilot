@@ -292,18 +292,22 @@ async def test_the_skill_catalogue_is_introspectable(stack: Any) -> None:
     _application, client, _gateway, _workspace = stack
     listing = (await client.get(f"{V1}/skills", headers=HEADERS)).json()
     names = {s["name"] for s in listing}
-    assert {"code_review", "bugfix_workflow", "safe_refactoring"} <= names
+    assert {"linux_troubleshooting", "service_management", "safe_config_change"} <= names
     assert all(s["source"] == "builtin" and "body" not in s for s in listing)
 
 
 @pytest.mark.integration
 async def test_the_skill_list_is_resident_and_the_body_arrives_only_on_demand(stack: Any) -> None:
     application, client, gateway, workspace = stack
-    finish_after(gateway, [("s1", "load_skill", {"skill_name": "code_review"})], "按流程做完了")
+    finish_after(
+        gateway,
+        [("s1", "load_skill", {"skill_name": "service_management"})],
+        "按流程做完了",
+    )
     _sid, tid = await run_task(client, application, workspace, "审一下")
     first, second = gateway.requests[0], gateway.requests[1]
     listed = [m.content for m in first.messages if m.content.startswith("<available_skills")]
-    assert listed and "code_review" in listed[0]
+    assert listed and "service_management" in listed[0]
     assert not any("已成功挂载专家技能" in m.content for m in first.messages)
     assert any("已成功挂载专家技能" in m.content for m in second.messages)  # 正文追加在往返里
     assert second.messages[: len(first.messages) - 1] == first.messages[:-1]  # 前缀只追加
