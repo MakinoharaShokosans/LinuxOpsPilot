@@ -31,6 +31,8 @@ dependencies = [
 ]
 
 [project.scripts]
+linuxops = "agent_runtime.cli:main"
+linuxopspilot = "agent_runtime.cli:main"
 baseagent = "agent_runtime.cli:main"
 baseagent-server = "agent_runtime.server:main"
 baseagent-bench = "evaluation.agent_bench.cli:main"

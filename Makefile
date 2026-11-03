@@ -14,7 +14,7 @@ install: ## 安装后端与前端依赖（需要联网）
 	cd $(FRONTEND) && pnpm install
 
 start: ## 启动沙箱 sidecar、后端与前端
-	cd $(BACKEND) && uv run baseagent start
+	cd $(BACKEND) && uv run linuxops start
 
 lint: ## 后端 ruff + pyright + import-linter，前端 eslint
 	cd $(BACKEND) && uv run ruff check . && uv run pyright && uv run lint-imports

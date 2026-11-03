@@ -118,7 +118,8 @@ class AccessGate:
     def _refuse(
         self, scope: Scope, headers: MutableMapping[str, str]
     ) -> tuple[int, str, str] | None:
-        host = host_name(headers.get("host", ""))
+        raw_host = headers.get("host", "")
+        host = host_name(raw_host)
         if host not in self._hosts:
             return 403, "HOST_NOT_ALLOWED", "Host 不在允许范围内"
         method, path = scope["method"], scope["path"]
@@ -128,7 +129,16 @@ class AccessGate:
             and origin is not None
             and origin.rstrip("/").lower() not in self._origins
         ):
-            return 403, "ORIGIN_NOT_ALLOWED", "Origin 不在允许范围内"
+            origin_clean = origin.rstrip("/").lower()
+            scheme = scope.get("scheme", "http")
+            if raw_host and origin_clean in {
+                f"http://{raw_host}".lower(),
+                f"https://{raw_host}".lower(),
+                f"{scheme}://{raw_host}".lower(),
+            }:
+                pass
+            else:
+                return 403, "ORIGIN_NOT_ALLOWED", "Origin 不在允许范围内"
         if (
             method == "OPTIONS"
             or path in self._exempt
@@ -139,7 +149,9 @@ class AccessGate:
         source = (scope.get("client") or ("-", 0))[0]
         if self._limiter is not None and self._limiter.blocked(source):
             return 429, "AUTH_RATE_LIMITED", "认证失败次数过多，请稍后再试"
-        presented = _bearer(headers.get("authorization", ""))
+        presented = _bearer(headers.get("authorization", "")) or _cookie(
+            headers.get("cookie", ""), "baseagent_token"
+        )
         if presented is None or not tokens_match(self._token, presented):
             if self._limiter is not None:
                 self._limiter.record_failure(source)
@@ -160,6 +172,17 @@ def _headers(scope: Scope) -> dict[str, str]:
 def _bearer(value: str) -> str | None:
     scheme, _, rest = value.partition(" ")
     return rest.strip() if scheme.lower() == "bearer" and rest.strip() else None
+
+
+def _cookie(header: str, name: str) -> str | None:
+    if not header:
+        return None
+    for part in header.split(";"):
+        k, sep, v = part.strip().partition("=")
+        if sep and k.strip() == name:
+            val = v.strip().strip('"')
+            return val if val else None
+    return None
 
 
 async def _respond(

@@ -60,9 +60,16 @@ def create_app(services: ApiServices, *, token: str | None) -> FastAPI:
             if full_path.startswith("api/") or full_path == "api":
                 raise HTTPException(status_code=404, detail="Not Found")
             target = dist_dir / full_path
-            if target.is_file():
-                return FileResponse(target)
-            return FileResponse(dist_dir / "index.html")
+            response = FileResponse(target if target.is_file() else dist_dir / "index.html")
+            if token and server.auth.enabled:
+                response.set_cookie(
+                    key="baseagent_token",
+                    value=token,
+                    httponly=True,
+                    samesite="lax",
+                    path="/",
+                )
+            return response
     else:
         @app.get("/", include_in_schema=False)
         async def root() -> dict[str, str]:  # pyright: ignore[reportUnusedFunction]
@@ -72,11 +79,21 @@ def create_app(services: ApiServices, *, token: str | None) -> FastAPI:
     async def health() -> dict[str, str]:  # pyright: ignore[reportUnusedFunction]
         return {"status": "ok"}
 
+    own_origins = {
+        f"http://{server.host}:{server.port}",
+        f"http://127.0.0.1:{server.port}",
+        f"http://localhost:{server.port}",
+    }
+    for h in server.allowed_hosts:
+        own_origins.add(f"http://{h}:{server.port}")
+        own_origins.add(f"https://{h}:{server.port}")
+    allowed_origins = list(dict.fromkeys([*server.cors_allow_origins, *own_origins]))
+
     app.add_middleware(
         AccessGate,
         token=token if server.auth.enabled else None,
         allowed_hosts=server.allowed_hosts,
-        allowed_origins=server.cors_allow_origins,
+        allowed_origins=allowed_origins,
         max_body_bytes=server.request_max_bytes,
         large_body_paths=[
             ("/files/content", services.settings.tools.files.write_max_bytes * 2 + 4096)
@@ -86,7 +103,7 @@ def create_app(services: ApiServices, *, token: str | None) -> FastAPI:
     )
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=server.cors_allow_origins,
+        allow_origins=allowed_origins,
         allow_credentials=False,
         allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
         allow_headers=["Authorization", "Content-Type", "Last-Event-ID", TRACE_HEADER],

@@ -18,6 +18,7 @@ import {
   Plus,
   Search,
   Settings,
+  ShieldAlert,
   Trash2,
   X,
 } from 'lucide-react';
@@ -199,7 +200,11 @@ export function Sidebar({ collapsedRail = false }: { collapsedRail?: boolean }) 
             side="right"
             onClick={() => attention[0] && go(attention[0].session.session_id)}
           >
-            <StatusDot status={attention[0]?.activity.status ?? null} size={10} />
+            {attention[0]?.activity.status === 'waiting_for_approval' ? (
+              <ShieldAlert size={16} className="text-warn" />
+            ) : (
+              <StatusDot status={attention[0]?.activity.status ?? null} size={10} />
+            )}
           </IconButton>
         </div>
         <div className="mt-1 flex min-h-0 flex-1 flex-col items-center gap-1 overflow-y-auto">
@@ -285,21 +290,6 @@ export function Sidebar({ collapsedRail = false }: { collapsedRail?: boolean }) 
       </Reveal>
 
       <nav className="min-h-0 flex-1 space-y-1 overflow-y-auto px-2 pb-2">
-        {!q && attention.length > 0 && (
-          <section aria-label="需要处理" className="mb-2 rounded-2xl bg-warn/[0.07] p-1.5">
-            {attention.map(({ session, activity: a }) => (
-              <button
-                key={session.session_id}
-                onClick={() => go(session.session_id)}
-                className="flex w-full items-center gap-2 rounded-xl px-2 py-1.5 text-left text-[13px] hover:bg-ink/[0.05]"
-              >
-                <StatusDot status={a.status} />
-                <span className="min-w-0 flex-1 truncate">{sessionTitle(session, a)}</span>
-              </button>
-            ))}
-          </section>
-        )}
-
         <div className="space-y-0.5">
           {filteredSessions.map((s) => (
             <SessionRow
@@ -456,7 +446,17 @@ function SessionRow({
             : 'text-mute hover:bg-ink/[0.035] hover:text-ink',
         )}
       >
-        {displayStatus && <StatusDot status={displayStatus} size={7} />}
+        {displayStatus === 'waiting_for_approval' ? (
+          <span title="待办审查命令" className="inline-flex shrink-0">
+            <ShieldAlert
+              size={14}
+              className="text-warn"
+              aria-label="待办审查命令"
+            />
+          </span>
+        ) : (
+          displayStatus && <StatusDot status={displayStatus} size={7} />
+        )}
         {editing ? (
           <InlineEdit
             label="会话标题"

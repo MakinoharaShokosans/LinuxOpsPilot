@@ -54,7 +54,12 @@ workspaces_dir = "workspaces"       # 会话专属作业空间根目录
 host = "127.0.0.1"                  # 安全红线：只允许回环地址 (127.0.0.1 / localhost / ::1)，其他值拒绝启动
 port = 11328
 max_concurrent_tasks = 1            # 单机串行化；超出返回 429
-cors_allow_origins = ["http://localhost:5173", "http://127.0.0.1:5173"]
+cors_allow_origins = [
+  "http://localhost:5173",
+  "http://127.0.0.1:5173",
+  "http://localhost:11328",
+  "http://127.0.0.1:11328",
+]
 allowed_hosts = []                  # 回环名始终允许；经反代或自定义本地域名访问时补充
 sse_heartbeat_sec = 15
 sse_buffer_events = 1000            # 热缓存条数；完整历史在事件库中

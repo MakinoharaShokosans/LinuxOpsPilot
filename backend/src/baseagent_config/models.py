@@ -121,7 +121,12 @@ class ServerConfig(_Section):
     host: str = "127.0.0.1"
     port: Port = 11328
     max_concurrent_tasks: PosInt = 1
-    cors_allow_origins: list[str] = ["http://localhost:5173", "http://127.0.0.1:5173"]
+    cors_allow_origins: list[str] = [
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+        "http://localhost:11328",
+        "http://127.0.0.1:11328",
+    ]
     allowed_hosts: list[str] = []
     sse_heartbeat_sec: PosInt = 15
     sse_buffer_events: PosInt = 1000
