@@ -1,10 +1,12 @@
-/** 根路径：回到最近使用的会话；没有会话时显示欢迎态并支持一键新建对话。 */
+/** 根路径：回到最近使用的会话；没有会话时显示欢迎态并支持一键新建对话与快捷运维指令。 */
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Navigate, useNavigate } from '@tanstack/react-router';
-import { MessageSquarePlus, Menu, Plus } from 'lucide-react';
+import { Menu, Plus } from 'lucide-react';
 import { api } from '../api/endpoints';
 import { useSessions } from '../api/queries';
+import { StarLogo } from '../components/common/BrandLogo';
 import { IconButton } from '../components/ui/primitives';
+import { SreQuickCards } from '../features/conversation/SreQuickCards';
 import { useAppStore } from '../stores/useAppStore';
 import { useUiStore } from '../stores/useUiStore';
 import { lastLocation } from '../utils/lastLocation';
@@ -25,6 +27,20 @@ export function Home() {
     },
     onError: (e: Error) => notify(e.message, 'error'),
   });
+
+  const handleQuickAction = (promptText: string) => {
+    create.mutate(undefined, {
+      onSuccess: (session) => {
+        try {
+          window.localStorage.setItem(`linuxops.draft.${session.session_id}`, promptText);
+        } catch {
+          // localStorage disabled
+        }
+        void client.invalidateQueries({ queryKey: ['sessions'] });
+        void navigate({ to: '/s/$sessionId', params: { sessionId: session.session_id } });
+      },
+    });
+  };
 
   const list = Array.isArray(sessions.data) ? sessions.data : [];
   if (sessions.isPending) return null;
@@ -50,20 +66,25 @@ export function Home() {
           </IconButton>
         </header>
       )}
-      <div className="flex flex-1 flex-col items-center justify-center gap-4 text-center">
+      <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col items-center justify-center gap-6 px-4 py-8 text-center">
         <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-accent/10 text-accent">
-          <MessageSquarePlus size={32} />
+          <StarLogo size={32} />
         </div>
         <div>
-          <h2 className="text-base font-semibold text-ink">欢迎使用 LinuxOpsPilot</h2>
-          <p className="mt-1 text-sm text-mute">暂无会话，立即开始第一个运维任务</p>
+          <h2 className="text-xl font-semibold tracking-tight text-ink">欢迎使用 LinuxOpsPilot</h2>
+          <p className="mt-1 text-sm text-mute">
+            面向 Linux 生产环境的 SRE 运维智能体。选择常用指令开始，或新建空白会话。
+          </p>
+        </div>
+        <div className="w-full">
+          <SreQuickCards onSelect={handleQuickAction} disabled={create.isPending} />
         </div>
         <button
           onClick={() => create.mutate()}
           disabled={create.isPending}
           className="flex items-center gap-2 rounded-xl bg-accent px-4 py-2 text-sm font-medium text-white transition hover:bg-accent/90 disabled:opacity-50"
         >
-          <Plus size={16} /> 新建对话
+          <Plus size={16} /> 新建空白会话
         </button>
       </div>
     </div>

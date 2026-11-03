@@ -50,7 +50,7 @@ export function BrandBadge({
       </div>
       {!collapsed && (
         <span className="font-semibold tracking-tight text-[14px] text-ink">
-          Base<span className="text-accent font-medium">Agent</span>
+          Linux<span className="text-accent font-medium">OpsPilot</span>
         </span>
       )}
     </div>

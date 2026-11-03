@@ -1,7 +1,7 @@
 /** 对话页：消息流 + 输入台 + 右侧检视器。 */
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useParams, useSearch } from '@tanstack/react-router';
-import { ArrowDown, ChevronRight, Menu, MessageSquare, PanelRight, WifiOff } from 'lucide-react';
+import { ArrowDown, ChevronRight, Menu, PanelRight, WifiOff } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { api } from '../../api/endpoints';
@@ -13,6 +13,7 @@ import {
 } from '../../api/queries';
 import { useContextSnapshot, useSessionSettings } from '../../api/useSettings';
 import { SafeMarkdown } from '../../components/common/SafeMarkdown';
+import { StarLogo } from '../../components/common/BrandLogo';
 import { McpStatus } from '../../components/domain/McpStatus';
 import { InlineEdit } from '../../components/ui/InlineEdit';
 import { IconButton, SPRING } from '../../components/ui/primitives';
@@ -33,6 +34,7 @@ import { Inspector } from '../inspector/Inspector';
 import { Composer } from './Composer';
 import { ConversationTimelineRail, type DialogueNode } from './ConversationTimelineRail';
 import { RunView } from './RunView';
+import { SreQuickCards } from './SreQuickCards';
 import { useReplay } from './useReplay';
 
 function UserMessage({ text }: { text: string }) {
@@ -421,8 +423,24 @@ export function ConversationPage() {
                 </div>
               ))}
               {!allTasks.length && !run && tasks.isSuccess && (
-                <div className="flex flex-col items-center gap-3 py-28 text-mute/35" aria-hidden>
-                  <MessageSquare size={30} strokeWidth={1.4} />
+                <div className="flex flex-col items-center gap-6 py-12 text-center">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-accent/10 text-accent">
+                    <StarLogo size={24} />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-semibold text-ink">LinuxOpsPilot SRE 运维助理已就绪</h3>
+                    <p className="mx-auto mt-1 max-w-md text-xs text-mute">
+                      支持并行系统探测、生产配置热修与自动快照备份。点击下方常用运维卡片快速发起，或在输入框提交自定义排障任务：
+                    </p>
+                  </div>
+                  <div className="w-full max-w-[680px]">
+                    <SreQuickCards
+                      onSelect={(prompt) => {
+                        void submit(sessionId, prompt, 'workspace_write', false);
+                      }}
+                      disabled={busy}
+                    />
+                  </div>
                 </div>
               )}
             </div>

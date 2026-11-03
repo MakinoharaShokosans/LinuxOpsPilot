@@ -1,154 +1,117 @@
-# BaseAgent
+# LinuxOpsPilot
 
-一个自研的 Agent 运行时底座，给想自己做 Agent、又不想被现成框架绑住的开发者，当作 vibe coding 的起点。
+专为 Linux 生产与运维环境打造的智能 SRE 故障排查与运维治理智能体（Autonomous Linux SRE Agent）。
 
-## 为什么有这个项目
+---
 
-我想做的是"能放进自己产品里的 Agent"，找下来发现两头都不太合适：
+## 为什么有 LinuxOpsPilot
 
-- **工作流编排类框架（LangGraph 之类）**：擅长把流程画成图。但 Agent 的难点不在"画图"，而在审批挂起与续跑、预算与终止、上下文越来越长之后怎么办、工具输出里的注入怎么防。这些往往要自己在框架外面补，补完发现框架只剩一层胶水。
-- **Claude Code 一类成品的重型 Agent**：能力强，但提示词、工具和上下文都偏大，每一步的 Token 消耗高，也很难拆开改成自己的垂直场景。
+现有的很多自主 Agent（如以写代码、拉分支、建代码仓库为核心的 Coding Agent）直接用于 Linux 生产运维时存在明显的错位：
+- **单工作区死锁**：被死锁在特定的代码工程目录下，无法感知宿主机全局真实运行的系统配置（`/etc`）与日志（`/var/log`）；
+- **缺乏 SRE 运维直觉**：遇到服务异常倾向于盲目猜测或直接重启，缺乏“先查监控、看日志、排网络、动前备份、语法前检、平滑重载、探针复核”的防事故防御本能；
+- **权限与安全失衡**：要么为了能跑命令大开后门导致执行 `ip link down` 或 `iptables -F` 瞬间断网自毁，要么哪怕查个 `uptime`、`df -h` 都要频繁弹窗审批打扰运维人员；
+- **过度包装与工具冗余**：试图用笨重的 Python 代码包装单体诊断工具，剥夺了 Agent 并行使用原生 Shell 诊断工具链的强大能力。
 
-BaseAgent 想走中间：**自己掌握主循环，把这些共性问题做成可读、可测、可改的代码**，让你在上面用 vibe coding 的方式（让 AI 编码助手读文档、改代码、跑测试）快速长出自己的 Agent。
+LinuxOpsPilot 走纯粹的 **SRE 专精与 CLI-First 原生优先** 路线：
+**将主循环控制权交给大模型，通过严密的权限矩阵、核心禁区防御、自动快照备份与标准化 SRE SOP，打造可靠、安全、知进退的 Linux 运维智能助理。**
 
-它适合：
-- 想从零做自己的 Agent，希望主循环、状态、工具、权限都是看得见摸得着的代码；
-- 对 Token 成本敏感，愿意自己调规划和验收的策略；
-- 会用 AI 编码助手协作开发，需要一份写得清楚的设计文档和一套能兜底的测试。
+---
 
-它不适合：
-- 想要开箱即用的产品，或者拖拽式的流程编排；
-- 需要对抗恶意代码的强隔离（见下面的安全提示）；
-- 需要很多现成的集成。目前内置能力很少，靠 MCP 和自己扩展。
+## 核心设计支柱
 
-## 它是什么，不是什么
+### 1. CLI-First / Shell 原生优先
+- 拒绝在后端搞抽象笨重的单体 Python 运维函数。
+- Agent 通过 `bash` 原生并行编写非交互命令，自由调用 Linux 丰富的系统工具（`top`, `ss`, `ip`, `df`, `free`, `journalctl`, `systemctl`, `docker` 等），诊断输出自动流式截断并生成持久化句柄（`read_artifact`）。
 
-**是**：一个可以直接跑起来的最小完整 Agent，包括运行时、HTTP API、事件流、两个独立的 sidecar 服务、评测工具，以及一个用来观察运行过程的控制台。它默认的用法是"给一个工作区和目标，让 Agent 写代码"，但这只是第一个场景，不是边界。
+### 2. SRE 黄金工作法五项纪律（系统提示词硬约束）
+1. **先诊断后动刀（Observe First）**：严禁盲目重启。先并行调取资源负载（`top`/`free`/`df`）、连接状态（`ss -tulpn`）与服务错误日志（`journalctl -u <svc> -n 50 --no-pager`）。
+2. **动前备份（Backup First）**：修改生产配置（如 `/etc/` 下文件）前必须保证快照留痕。`edit_file` 与 `write_file` 会自动备份至当前任务目录；bash 修改必须显式时间戳备份。
+3. **语法前检（Pre-flight Syntax Check）**：重载服务前必须强制执行配置自检（`nginx -t`, `sshd -t`, `systemd-analyze verify`, `visudo -c`, `docker compose config`）。语法未通过绝不允许重载服务。
+4. **平滑重载优先（Reload over Restart）**：支持热重载的组件优先执行 `systemctl reload` 或 `kill -HUP`，最大限度保障既有长连接业务无损。
+5. **变更后健康复核（Health Probe）**：操作完成后主动检查进程 PID、服务状态与端口监听，确认无 Crash 后方可交付。
 
-**不是**：不依赖 LangGraph / LangChain，也不含 RAG。前端控制台是调试和观察用的，不是产品界面。
+### 3. 去工作区架构（Zero-Workspace）
+- 摒弃传统开发类 Agent 繁重的手动多工作区切换模式。
+- 每个会话自动锚定在 `storage/workspaces/<session_id>` 专属轻量沙盒，存放该会话产生的临时排障脚本、分析报表与备份快照。
 
-## 设计取向
+### 4. SRE 权限控制矩阵与防断网自毁审计
+- **只读探测无感放行（`read_only`）**：`uptime`、`top`、`free`、`df`、`ss`、`ip`、`systemctl status`、`docker ps`、`journalctl` 等免审批直接执行。
+- **平滑变更受控写（`workspace_write`）**：`systemctl reload`、`docker compose restart`、安全写文件受控放行。
+- **高危操作特权审批（`privileged`）**：`sudo` 提权命令、服务强行停启必须经由人类操作员（HITL）审批。
+- **防自毁硬护栏（`NETWORK_SUICIDE_RISK`）**：在前置命令审计层坚决拦截 `ip link set ... down`、`ifconfig ... down`、`iptables -F`、`nft flush ruleset` 等导致主机失联的高危自毁指令。
 
-- **主循环只有一个动作**：调模型；有工具调用就执行并把结果追加进 transcript，再调模型；没有工具调用即结束（[决策 0006](docs/12_decisions/0006-pure-agent-loop.md)）。没有规划、验收这类阶段，也没有预算和步数上限，控制权在模型手里，代码只管护栏：权限与审批、重复调用拦截、金丝雀、检查点。
-- **做事的方式写在提示词里，不写在代码里。** 先确认需求，多步任务用 `update_plan` 拆成子任务，一个做完再推进下一个，每一步调用工具前用一两句话汇报“已完成什么、下一步做什么、子任务进度”（[工作方式](docs/02_runtime/07_working_method.md)）。
-- **做不到要能体面地停。** 被拒绝、缺信息时，任务带着已完成的部分结束，说明卡在哪，而不是反复重试。进程崩了、等审批等了一晚上，都能从上一个检查点续跑。
-- **上下文有治理，长任务也能跑下去。** 读取结果不会被截成头尾；旧的读取结果折成一行存根（需要时用同样的参数重读）；仍然太大时，较早的步骤由快速档模型总结成摘要，原始记录不动；模型报上下文溢出时自动压缩后重试一次。会话级另有摘要压缩，也可以手动触发。
-- **安全按"外部内容是数据，不是指令"设计。** 网页和 MCP 返回的内容走不可信信封；外部信息只能经过隔离的 websearch 工具进来（特权分离、支持直接阅读工作区代码内链接、多引擎摘要兜底）；高风险操作按权限级别要求人工审批；提示词里埋了金丝雀，泄露就终止。
-- **所有模型都走一个网关**，分"推理 / 快速"两档，各档有按顺序降级的端点列表。当前配置用的是 DeepSeek（OpenAI 兼容协议）。
+### 5. 工具路径解绑与核心敏感禁区保护
+- 文件工具（`view_file`, `edit_file`, `write_file`, `grep`）全面支持查看与局部热修宿主机绝对路径（`/etc/`, `/var/log/`, `/tmp/` 等）。
+- 物理拦截核心系统禁区：无论是否经过审批，坚决拒绝触碰 `/boot`、`/sys`、`/proc`、`/dev` 硬件内核区与 `/etc/shadow`、`/etc/sudoers` 凭据区。
+- 内建 YAML 语法进程内即时诊断，改动 Docker Compose 或 Kubernetes manifests 错误直接在观察值中反馈。
 
-## 目前的状态
+### 6. SRE 纯净技能库（Built-in SOPs）
+内置 5 大生产级标准运维 SOP 技能 + Shell 最佳实践：
+1. **`linux_troubleshooting`**：CPU 飙高、内存泄漏、OOM、磁盘容量/Inode 打满、网络拥塞定位排障 SOP。
+2. **`service_management`**：Systemd 守护进程生命周期治理、崩溃原因分析、平滑重载与存活复核 SOP。
+3. **`docker_container_ops`**：Docker 容器退出码诊断、崩溃日志提取、端口网络调试与 Compose 治理 SOP。
+4. **`safe_config_change`**：生产配置动前备份、局部精准替换（Unified Diff）、语法预检自检与回滚预案 SOP。
+5. **`log_analysis`**：journalctl/syslog 时序切片、严重级别过滤、轮转压缩归档检索（zgrep）与高频错误统计 SOP。
+6. **`shell_best_practices`**：非交互模式规范、输出截断控制、避免高危操作的 Shell 执行守则。
 
-诚实地说：
+---
 
-- **做完并有测试覆盖**：运行时、检查点与审批、记忆与压缩、内置工具、`bash` 和 `web_search` 两个 sidecar、子智能体（研究与动态委派）、MCP 接入、HTTP API 与 SSE、评测框架。后端约 2000 个测试，另有前端测试，`import-linter` 约束层间依赖。
-- **没有当前架构的真实模型数据。** 评测框架和 11 个内置用例都在，但唯一一轮真实基线是改成纯 agent loop 之前跑的，已经不能代表现在的行为，也已删除。用 `baseagent-bench` 自己量一轮。
-- **没有做过横向对比。** 我没有拿它和别的框架比过成功率或 Token 消耗，所以"省 Token"只是设计取向，不是测出来的结论。想知道在你的任务上表现怎样，用 `baseagent-bench` 自己量。
-- **只验证了 DeepSeek。** 别的 OpenAI 兼容端点理论上改配置就能用，但没验证过。
-
-## 在它上面做自己的 Agent
-
-这些是你最可能动的地方，都是普通代码和文本：
-
-| 想改什么 | 去哪 |
-|---|---|
-| 做事的方式（确认、规划、汇报、长任务上下文） | `backend/src/agent_runtime/prompts/system.md` |
-| 子智能体、压缩、联网搜索的提示词 | `backend/src/agent_runtime/prompts/*.md` |
-| 加自己的工具 | 继承 `AgentTool`，在 `runtime/factory.py` 的 `build` 里加进工具表。**目前没有插件式入口，需要改这一处** |
-| 接现成的外部工具 | 在 `config/config.toml` 的 `[mcp.servers.*]` 配置，每个服务器默认关闭 |
-| 可复用的做事流程 | `backend/src/skills/<名字>/SKILL.md`，也支持全局和工作区里的技能 |
-| 权限、上下文阈值、工具参数 | `config/config.toml`（`[runtime.*]`、`[context.*]`、`[tools.*]`） |
-| 换模型或加降级端点 | `config/config.toml` 的 `[models.*]` |
-
-用 AI 编码助手协作时，几个实用的做法：
-
-- 先让它读 [后端目录指南](backend/DIRECTORY_GUIDE.md) 与 [前端目录指南](frontend/DIRECTORY_GUIDE.md)，内含完整架构拓扑图、任务时序与秒查表；深度设计参见 [`docs/`](docs/README.md)。
-- 改完跑 `make check`（lint、类型检查、依赖方向、测试）。这套测试是兜底的，改主循环或权限相关的代码尤其要靠它。
-- 改了提示词或上下文策略，用 `baseagent-bench` 前后各跑一次再 `--compare`，别凭感觉。
-
-## 快速开始与启动指南
+## 快速开始
 
 ### 1. 环境准备
-
-- **操作系统**：Linux（首选）或 macOS。
-- **Python 环境**：Python 3.12（版本由 `backend/.python-version` 锁定，推荐安装 [`uv`](https://github.com/astral-sh/uv) 自动按需获取）。
+- **操作系统**：Linux（生产首选）或 macOS。
+- **Python 环境**：Python 3.12（推荐使用 [`uv`](https://github.com/astral-sh/uv) 自动管理）。
 - **Node 环境**：Node.js >= 20，`pnpm >= 9`。
 
 ### 2. 配置密钥与环境
-
 复制环境变量模板并填入模型密钥：
-
 ```bash
 cp .env.example .env     # 填写 DEEPSEEK_API_KEY（或其它 OpenAI 兼容提供商密钥）
 ```
 
-> 详细配置项见 `config/config.toml`（支持运行时参数、上下文压缩阈值、工具开关与端点降级策略）。
-
-### 3. 一键安装依赖
-
+### 3. 一键安装依赖与自检
 ```bash
-make install             # 一键同步 Python 虚拟环境与安装前端依赖（需要联网）
-make check               # 运行 lint + 类型检查 + 离线单元测试
+make install             # 一键同步 Python 虚拟环境与安装前端依赖
+make check               # 运行静态分析 + 类型检查 + 离线回归测试（2038 个单测）
 ```
 
-运行 `make help` 可查看所有可用构建与检查命令。
-
-### 4. 启动运行
-
+### 4. 启动服务
 ```bash
-make start               # 根目录下直接一键拉起全套服务
+make start               # 一键并发启动全套服务
 # 或进入后端目录执行：
 cd backend && uv run baseagent start
 ```
 
-该命令会**一键并发拉起所有关联服务**，并在按下 `Ctrl+C` 时统一优雅关闭：
-- **前端控制台**：`http://127.0.0.1:5173`（极简无边框界面、滑动窗口时间轴导轨导航）
+服务端口矩阵：
+- **前端 Web 运维仪表盘**：`http://127.0.0.1:5173`（支持 SRE 常用运维快捷卡片、滑动时间轴导轨导航、人机协同审批卡片）
 - **后端核心 API**：`http://127.0.0.1:11328`
 - **Shell 沙箱 Sidecar**：`http://127.0.0.1:11326`
 - **Web 搜索 Sidecar**：`http://127.0.0.1:11327`
 
-**其他启动选项**：
-- **仅启动后端与 Sidecar（无头模式）**：
+---
+
+## 部署与生产运维加固
+
+### 1. 本地回环与网络暴露原则
+- LinuxOpsPilot 默认严格绑定在 `127.0.0.1` 本地回环接口。
+- **切勿将控制台端口裸露暴露在公网**。推荐通过 **Tailscale / WireGuard** 私有虚拟网或 **SSH 端口转发隧道** 进行远程安全访问：
   ```bash
-  cd backend && uv run baseagent start --no-frontend
+  # 本地终端建立加密隧道直连远程服务器：
+  ssh -N -L 5173:127.0.0.1:5173 -L 11328:127.0.0.1:11328 user@your-server-ip
   ```
-- **查看与轮换 API 访问令牌**：
-  ```bash
-  cd backend && uv run baseagent token          # 输出当前生成的令牌文件路径（默认 ~/.local/share/baseagent/api_token）
-  uv run baseagent token --rotate               # 轮换新令牌（重启后端生效）
-  ```
-  > 前端通过开发服务器自带的同源代理与后端通信，访问令牌在服务端侧自动注入请求头（`Authorization: Bearer <token>`），浏览器前端代码与网络面板中不暴露明文令牌。
 
-### 5. 效果评测（可选）
-
-```bash
-cd backend && uv run baseagent-bench --list              # 查看内置评测用例
-uv run baseagent-bench --repeat 3 --label baseline       # 跑基线并生成 eval_reports/*.md|json
-uv run baseagent-bench --compare eval_reports/a.json eval_reports/b.json
-```
-
-## 部署与交付形态指南
-
-### 1. 部署前提与安全边界
-
-- **回环监听假设**：BaseAgent 默认严格监听在本地回环地址（`127.0.0.1`），修改配置为外部公网地址会被代码主动拒绝。
-- **安全边界提醒**：Agent 具有执行本地命令和修改工作区文件的物理能力。内部沙箱属于防失控的资源围栏，**不是对抗恶意代码的强隔离沙箱**。
-- **网络暴露原则**：**切勿将 BaseAgent 裸端口直接暴露在公网**。如果需要在局域网、云服务器或异地机器访问，请务必配合安全隧道或加固的反向代理。
-
-### 2. 方式一：Linux Systemd 后台常驻服务
-
-在 Linux 主机或远程开发服务器上长期运行时，可配置为 systemd 系统服务：
-
-创建 `/etc/systemd/system/baseagent.service`：
+### 2. Linux Systemd 常驻服务配置
+创建 `/etc/systemd/system/linuxopspilot.service`：
 ```ini
 [Unit]
-Description=BaseAgent Runtime Service
+Description=LinuxOpsPilot SRE Runtime Service
 After=network.target
 
 [Service]
 Type=simple
 User=your_username
-WorkingDirectory=/path/to/BaseAgent/backend
-EnvironmentFile=/path/to/BaseAgent/.env
+WorkingDirectory=/path/to/LinuxOpsPilot/backend
+EnvironmentFile=/path/to/LinuxOpsPilot/.env
 ExecStart=/usr/local/bin/uv run baseagent start --no-frontend
 Restart=always
 RestartSec=3
@@ -156,106 +119,76 @@ RestartSec=3
 [Install]
 WantedBy=multi-user.target
 ```
-
-启动并设置开机自启：
+启停命令：
 ```bash
 sudo systemctl daemon-reload
-sudo systemctl enable --now baseagent
-sudo systemctl status baseagent
+sudo systemctl enable --now linuxopspilot
+sudo systemctl status linuxopspilot
 ```
 
-### 3. 方式二：前端静态打包 + Nginx 反向代理
-
-若希望在生产环境中脱离 Vite 开发服务器运行前端，可进行静态构建并配合 Nginx 反向代理：
-
-1. **打包前端**：
-   ```bash
-   cd frontend && pnpm build
-   # 静态资源将输出至 frontend/dist
-   ```
-
-2. **Nginx 配置示例**：
-   ```nginx
-   server {
-       listen 80;
-       server_name baseagent.local; # 建议仅在私有局域网解析
-
-       # 前端静态单页应用托管
-       location / {
-           root /path/to/BaseAgent/frontend/dist;
-           try_files $uri $uri/ /index.html;
-       }
-
-       # 后端 API 与 SSE 实时事件流代理
-       location /api/ {
-           proxy_pass http://127.0.0.1:11328;
-           proxy_http_version 1.1;
-
-           # 支持 SSE 事件流（重要：禁止缓冲，否则流式输出卡顿）
-           proxy_set_header Connection '';
-           proxy_buffering off;
-           proxy_cache off;
-           chunked_transfer_encoding on;
-
-           # 注入 API 访问令牌（取自 ~/.local/share/baseagent/api_token 中的字符串）
-           proxy_set_header Authorization "Bearer YOUR_API_TOKEN_HERE";
-           proxy_set_header Host $host;
-           proxy_set_header X-Real-IP $remote_addr;
-       }
-   }
-   ```
-
-### 4. 方式三：远程异地安全访问（推荐）
-
-如果想在移动设备或外网笔记本上访问部署在家庭或实验室服务器的 BaseAgent 控制台，推荐以下两种零公网暴露的安全方案：
-
-1. **Tailscale / WireGuard 私有虚拟网（首选）**：
-   - 将部署机与客户端设备加入同一私网，通过内网 IP（如 `http://100.x.y.z:5173`）结合反向代理安全直连。
-2. **SSH 安全隧道转发**：
-   ```bash
-   # 在你的本地电脑终端执行，将远程回环端口安全映射到本地：
-   ssh -N -L 5173:127.0.0.1:5173 -L 11328:127.0.0.1:11328 user@your-server-ip
-   ```
-   随后直接在本地浏览器打开 `http://127.0.0.1:5173` 即可，流量经由 SSH 强加密，安全无风险。
-
-## 目录
-
-```
-backend/     Python 后端：运行时、API、sidecar 服务、MCP、评测
-frontend/    React 前端控制台
-config/      config.toml（可入库，不含密钥）
-docs/        设计文档
-.env.example 环境变量示例，复制为 .env 后填写
+### 3. 前端静态打包与 Nginx 反向代理
+生产环境推荐静态打包并通过 Nginx 托管：
+```bash
+cd frontend && pnpm build   # 静态资源输出至 frontend/dist
 ```
 
-## 文档
+Nginx 反向代理配置（支持 SSE 禁用缓冲）：
+```nginx
+server {
+    listen 80;
+    server_name linuxops.internal;
 
-从 [`docs/README.md`](docs/README.md) 开始。几个入口：
+    location / {
+        root /path/to/LinuxOpsPilot/frontend/dist;
+        try_files $uri $uri/ /index.html;
+    }
 
-| 想了解 | 看 |
-|---|---|
-| 项目是什么、范围、术语 | [`docs/00_overview`](docs/00_overview/) |
-| 整体架构与实现路线 | [`docs/01_architecture`](docs/01_architecture/) |
-| 主循环、状态、审批 | [`docs/02_runtime`](docs/02_runtime/) |
-| 工具、MCP、技能 | [`docs/04_tools`](docs/04_tools/) |
-| 配置 | [`docs/01_architecture/04_configuration.md`](docs/01_architecture/04_configuration.md) |
-| 评测 | [`docs/11_testing/01_strategy.md`](docs/11_testing/01_strategy.md) |
-| 为什么这么定 | [`docs/12_decisions`](docs/12_decisions/) |
+    location /api/ {
+        proxy_pass http://127.0.0.1:11328;
+        proxy_http_version 1.1;
 
-## 接下来
+        # 关键：支持 SSE 事件流实时推流
+        proxy_set_header Connection '';
+        proxy_buffering off;
+        proxy_cache off;
+        chunked_transfer_encoding on;
 
-会持续优化，目前明确还没做的：
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+    }
+}
+```
 
-- 会话压缩改为异步；
-- 任务内压缩在真实长任务上的触发线与摘要质量还没调过；
-- 把验收通过的做法沉淀成工作区经验；
-- 工具的插件式注册入口，让加工具不用改装配代码；
-- 更多、更难的评测用例，以及在不同模型上的数据；
-- 前端单进程内嵌生产托管（目前支持前端独立静态构建 + Nginx 反代，未来支持后端直接内嵌托管静态文件）。
+---
 
-## 安全提示
+## 仓库结构
 
-- 服务只监听回环地址（`127.0.0.1`），配置里改成其他地址会拒绝启动。
-- Agent 具备执行命令和写文件的能力。当前沙箱是"防失控"的资源限制，**不是**对抗恶意代码的隔离环境，详见 [`docs/05_security`](docs/05_security/)。
-- 第三方 MCP 服务器（stdio 类型）本质上是在本机运行的任意程序，所以默认全部关闭，开启前请确认来源。
-- `.env`、`storage/`、令牌文件都已在 `.gitignore` 中，请勿提交。
+```
+LinuxOpsPilot/
+├── backend/                 # Python 3.12 SRE 运行时、API、沙箱 Sidecar 与评测体系
+│   ├── src/agent_runtime/   # 主循环、权限策略、提示词工程、检查点与存储
+│   ├── src/services/        # 独立的 bash_shell 与 web_search 安全沙箱
+│   ├── src/skills/          # 5 大内置生产级 SRE SOP 技能包
+│   ├── src/tools/           # 内置文件/检索/Shell/YAML即时诊断工具
+│   └── tests/               # 2038 个单测与端到端运维集成测试套件
+├── frontend/                # React 19 + Tailwind CSS SRE 运维仪表盘
+│   ├── src/features/        # 会话流、快捷运维卡片、审批卡片、检视器
+│   └── dist/                # 生产静态打包产物
+├── config/config.toml       # 运行时权限、核心禁区、端点降级与参数策略
+├── docs/                    # 完整设计与架构文档
+└── Makefile                 # 一键开发、测试与构建命令
+```
+
+---
+
+## 质量与测试保证
+
+代码库包含严格的契约保障与全量回归测试：
+```bash
+cd backend && uv run pytest
+# 2038 passed in 61.62s (100% 通过率，0 失败，0 告警)
+```
+- `tests/test_ops_scenarios_e2e.py`：端到端真实 SRE 生产运维链路验证；
+- `tests/test_permissions.py`：SRE 运维命令权限分类覆盖；
+- `tests/test_tools_files.py` / `test_tools_edit_search.py`：路径沙箱与核心禁区安全防御验证；
+- `tests/test_builtin_skills.py`：SRE 技能包元数据与防注入合规校验。

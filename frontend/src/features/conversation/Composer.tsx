@@ -126,7 +126,7 @@ export function Composer({
   const phone = useUiStore((s) => s.phone);
   const openCard = useUiStore((s) => s.openCard);
   const toggleInspector = useUiStore((s) => s.toggleInspector);
-  const draftKey = `baseagent.draft.${sessionId}`;
+  const draftKey = `linuxops.draft.${sessionId}`;
   const [text, setText] = useState(() => {
     try {
       return window.localStorage.getItem(draftKey) ?? '';
