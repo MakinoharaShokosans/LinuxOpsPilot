@@ -28,9 +28,21 @@ describe('Inspector Multi-Drawer Switcher', () => {
 
   it('renders segmented control tabs for tasks, artifacts, and network surface', () => {
     renderWithClient(<Inspector sessionId="s-1" />);
-    expect(screen.getByRole('tab', { name: /任务与上下文/ })).toBeDefined();
-    expect(screen.getByRole('tab', { name: /交付报告/ })).toBeDefined();
-    expect(screen.getByRole('tab', { name: /端口暴露面/ })).toBeDefined();
+    const tasksTab = screen.getByRole('tab', { name: /任务与上下文/ });
+    const artifactsTab = screen.getByRole('tab', { name: /交付报告/ });
+    const networkTab = screen.getByRole('tab', { name: /端口暴露面/ });
+
+    expect(tasksTab).toBeDefined();
+    expect(artifactsTab).toBeDefined();
+    expect(networkTab).toBeDefined();
+
+    // Must be pure SVG icons with zero text content (icon-only 28x28 compact segmented tabs)
+    expect(tasksTab.querySelector('svg')).not.toBeNull();
+    expect(artifactsTab.querySelector('svg')).not.toBeNull();
+    expect(networkTab.querySelector('svg')).not.toBeNull();
+    expect(tasksTab.textContent).toBe('');
+    expect(artifactsTab.textContent).toBe('');
+    expect(networkTab.textContent).toBe('');
   });
 
   it('switches views smoothly when tabs are clicked', () => {

@@ -143,10 +143,10 @@ echo ">>> SRE 自愈 Playbook 执行完毕，请复查系统遥测状态。"
               <button
                 onClick={toggleToc}
                 aria-label={tocCollapsed ? '展开大纲' : '收起大纲'}
-                className="inline-flex h-6 items-center gap-1 rounded border border-[#2B2A27]/15 bg-canvas px-2 text-[10px] font-medium text-ink transition hover:border-[#2B2A27] dark:border-white/15 dark:bg-[#202024] dark:text-zinc-200 dark:hover:border-white"
+                className="inline-flex h-6 w-6 items-center justify-center rounded border border-[#2B2A27]/15 bg-canvas text-ink transition hover:border-[#2B2A27] hover:bg-ink/[0.04] active:scale-95 dark:border-white/15 dark:bg-[#202024] dark:text-zinc-200 dark:hover:border-white"
               >
-                {tocCollapsed ? <PanelLeftOpen size={11} /> : <PanelLeftClose size={11} />}
-                <span>{tocCollapsed ? '展开大纲' : '收起大纲'}</span>
+                {tocCollapsed ? <PanelLeftOpen size={12} /> : <PanelLeftClose size={12} />}
+                <span className="sr-only">{tocCollapsed ? '展开大纲' : '收起大纲'}</span>
               </button>
             </Tip>
           )}
@@ -221,20 +221,20 @@ echo ">>> SRE 自愈 Playbook 执行完毕，请复查系统遥测状态。"
         </div>
       </div>
 
-      {/* 底部固化与沉淀操作栏 (Runbook 固化) */}
+      {/* 底部固化与沉淀操作栏 (Runbook 固化 · 纯 SVG 容器与 GeometricTooltip) */}
       <div className="flex h-12 shrink-0 items-center justify-between border-t border-[#2B2A27]/10 bg-subtle px-4 font-mono text-[11px] dark:border-white/10 dark:bg-white/[0.02]">
         <Tip label="打印或导出 PDF">
           <button
             onClick={handlePrint}
             aria-label="导出 PDF"
-            className="inline-flex h-7 items-center gap-1.5 rounded border border-[#2B2A27]/20 bg-canvas px-2.5 font-medium text-ink transition hover:border-[#2B2A27] hover:bg-ink/[0.04] active:scale-95 dark:border-white/20 dark:text-zinc-200 dark:hover:border-white dark:hover:bg-white/10"
+            className="flex h-7 w-7 items-center justify-center rounded border border-[#2B2A27]/20 bg-canvas text-ink transition hover:border-[#2B2A27] hover:bg-ink/[0.04] active:scale-95 dark:border-white/20 dark:text-zinc-200 dark:hover:border-white dark:hover:bg-white/10"
           >
-            <Printer size={12} />
-            <span>导出 PDF</span>
+            <Printer size={13} />
+            <span className="sr-only">导出 PDF</span>
           </button>
         </Tip>
 
-        {/* 提取自愈 Playbook：纯 SVG 状态流转，零文字抖动 */}
+        {/* 提取自愈 Playbook：纯 SVG 几何形态蜕变，零文字抖动 */}
         <Tip
           label={
             copiedPlaybook
@@ -245,19 +245,14 @@ echo ">>> SRE 自愈 Playbook 执行完毕，请复查系统遥测状态。"
           <button
             onClick={extractPlaybook}
             aria-label="提取自愈 Playbook"
-            className="inline-flex h-7 items-center gap-1.5 rounded border border-[#2B2A27]/25 bg-canvas px-2.5 font-semibold text-ink shadow-sm transition hover:border-[#2B2A27] hover:bg-ink/[0.04] active:scale-95 dark:border-white/25 dark:text-zinc-100 dark:hover:border-white dark:hover:bg-white/10"
+            className="flex h-7 w-7 items-center justify-center rounded border border-[#2B2A27]/25 bg-canvas text-ink shadow-sm transition hover:border-[#2B2A27] hover:bg-ink/[0.04] active:scale-95 dark:border-white/25 dark:text-zinc-100 dark:hover:border-white dark:hover:bg-white/10"
           >
             {copiedPlaybook ? (
-              <>
-                <Check size={12} className="text-[#437A58]" />
-                <span className="text-[#437A58]">已复制 Playbook</span>
-              </>
+              <Check size={14} className="text-[#437A58]" />
             ) : (
-              <>
-                <Sparkles size={12} className="text-[#D97706]" />
-                <span>提取自愈 Playbook</span>
-              </>
+              <Sparkles size={14} className="text-[#D97706]" />
             )}
+            <span className="sr-only">{copiedPlaybook ? '已复制 Playbook' : '提取自愈 Playbook'}</span>
           </button>
         </Tip>
       </div>

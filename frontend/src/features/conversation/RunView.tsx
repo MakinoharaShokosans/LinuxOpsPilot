@@ -6,6 +6,7 @@ import { SafeMarkdown } from '../../components/common/SafeMarkdown';
 import { HitlApprovalCard } from '../../components/domain/HitlApprovalCard';
 import { CopyButton } from '../../components/ui/CopyButton';
 import { IconButton } from '../../components/ui/primitives';
+import { Tip } from '../../components/ui/Tooltip';
 import { useAppStore } from '../../stores/useAppStore';
 import { useCockpitStore } from '../../stores/useCockpitStore';
 import { useUiStore } from '../../stores/useUiStore';
@@ -154,16 +155,19 @@ export function RunView({
             <span className="font-mono text-[11px] font-semibold text-ink dark:text-zinc-200">
               [ SRE 任务交付与巡检大盘 ]
             </span>
-            <button
-              onClick={() => {
-                openArtifact('系统全要素巡检与调优诊断大盘.md', run.delivery || '');
-                useUiStore.getState().setInspectorOpen(true);
-              }}
-              className="inline-flex items-center gap-1.5 rounded border border-[#2B2A27]/20 bg-canvas px-2.5 py-1 font-mono text-[11px] font-medium text-ink transition hover:border-[#2B2A27] hover:bg-ink/[0.04] active:scale-95 dark:border-white/20 dark:text-zinc-200 dark:hover:border-white"
-            >
-              <BookOpen size={12} />
-              <span>展开 480px 产物抽屉 (TOC / SOP)</span>
-            </button>
+            <Tip label="展开 480px 巡检与调优诊断大盘 · TOC / SOP" side="left">
+              <button
+                type="button"
+                aria-label="展开产物抽屉"
+                onClick={() => {
+                  openArtifact('系统全要素巡检与调优诊断大盘.md', run.delivery || '');
+                  useUiStore.getState().setInspectorOpen(true);
+                }}
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded border border-[#2B2A27]/20 bg-canvas text-ink transition hover:border-[#2B2A27] hover:bg-ink/[0.04] active:scale-95 dark:border-white/20 dark:text-zinc-200 dark:hover:border-white dark:hover:bg-white/10"
+              >
+                <BookOpen size={14} />
+              </button>
+            </Tip>
           </div>
           <SafeMarkdown text={run.delivery} />
         </div>

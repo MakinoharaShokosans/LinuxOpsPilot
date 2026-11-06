@@ -25,11 +25,17 @@ describe('SreTerminalDrawer', () => {
     render(<SreTerminalDrawer />);
     const takeoverBtn = screen.getByRole('button', { name: '人机接管模式切换' });
     expect(screen.getByText('智能体自治 · 观察模式')).toBeDefined();
+    expect(takeoverBtn.className).toContain('h-7');
+    expect(takeoverBtn.className).toContain('w-7');
+    expect(takeoverBtn.querySelector('svg')).not.toBeNull();
 
     // Switch to human takeover
     fireEvent.click(takeoverBtn);
     expect(useCockpitStore.getState().takeoverMode).toBe('human');
     expect(screen.getByText('人工接管中 · 智能体挂起')).toBeDefined();
+    // After takeover, retains fixed h-7 w-7 dimensions (pure SVG icon morphing)
+    expect(takeoverBtn.className).toContain('h-7');
+    expect(takeoverBtn.className).toContain('w-7');
 
     // Input prompt becomes active
     const input = screen.getByPlaceholderText('输入救火 Bash 命令并按回车执行...');

@@ -31,6 +31,9 @@ describe('SreArtifactDrawer', () => {
 
     render(<SreArtifactDrawer />);
     const extractBtn = screen.getByRole('button', { name: '提取自愈 Playbook' });
+    expect(extractBtn.className).toContain('h-7');
+    expect(extractBtn.className).toContain('w-7');
+    expect(extractBtn.querySelector('svg')).not.toBeNull();
     fireEvent.click(extractBtn);
 
     expect(writeText).toHaveBeenCalled();
@@ -38,6 +41,9 @@ describe('SreArtifactDrawer', () => {
     expect(copiedText).toContain('#!/usr/bin/env bash');
     expect(copiedText).toContain('ulimit -f unlimited');
     expect(screen.getByText('已复制 Playbook')).toBeDefined();
+    // After copy, it still retains h-7 w-7 container (zero text expansion jitter)
+    expect(extractBtn.className).toContain('h-7');
+    expect(extractBtn.className).toContain('w-7');
   });
 
   it('closes drawer when close button is clicked', () => {
@@ -54,11 +60,16 @@ describe('SreArtifactDrawer', () => {
 
     // Initially TOC is expanded, "收起大纲" button is visible
     const collapseBtn = screen.getByRole('button', { name: '收起大纲' });
+    expect(collapseBtn.className).toContain('h-6');
+    expect(collapseBtn.className).toContain('w-6');
+    expect(collapseBtn.querySelector('svg')).not.toBeNull();
     fireEvent.click(collapseBtn);
     expect(useCockpitStore.getState().tocCollapsed).toBe(true);
 
     // After collapsing, "展开大纲" button appears
     const expandBtn = screen.getByRole('button', { name: '展开大纲' });
+    expect(expandBtn.className).toContain('h-6');
+    expect(expandBtn.className).toContain('w-6');
     fireEvent.click(expandBtn);
     expect(useCockpitStore.getState().tocCollapsed).toBe(false);
   });

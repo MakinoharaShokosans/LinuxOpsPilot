@@ -199,56 +199,57 @@ export function SreTerminalDrawer() {
               </svg>
             </div>
 
-            {/* 控制器与接管切换开关 */}
+            {/* 控制器与接管切换开关 (纯 SVG + GeometricTooltip) */}
             <div className="flex items-center gap-2">
-              {/* 人机接管开关 (Takeover Switch) */}
+              {/* 人机接管开关 (Takeover Switch) - 纯 SVG 容器与 GeometricTooltip */}
               <Tip
                 label={
                   isHuman
-                    ? '当前处于人类直接接管状态：智能体已挂起，输入 Bash 命令救火。点击交还智能体。'
-                    : '当前处于智能体自治观察模式。点击以挂起智能体并进入人工直接排障。'
+                    ? '当前处于人类直接接管状态：智能体已挂起，输入救火 Bash 命令。点击交还智能体。'
+                    : '当前处于智能体自治观察模式。点击挂起智能体并进入人工直接排障。'
                 }
               >
                 <button
                   onClick={() => setTakeoverMode(isHuman ? 'autonomous' : 'human')}
                   aria-label="人机接管模式切换"
-                  className={`flex h-7 items-center gap-1.5 rounded border px-2.5 font-mono text-[10.5px] font-semibold transition active:scale-95 ${
+                  className={`flex h-7 w-7 items-center justify-center rounded border transition active:scale-95 ${
                     isHuman
                       ? 'border-[#D97706] bg-[#D97706]/10 text-[#D97706] dark:border-[#D97706]'
                       : 'border-[#2B2A27]/20 bg-canvas text-ink hover:border-[#2B2A27] dark:border-white/20 dark:text-zinc-200 dark:hover:border-white'
                   }`}
                 >
                   {isHuman ? (
-                    <>
-                      <UserCheck size={12} className="shrink-0" />
-                      <span>人工接管中 · 智能体挂起</span>
-                    </>
+                    <UserCheck size={13} className="shrink-0" />
                   ) : (
-                    <>
-                      <Bot size={12} className="shrink-0 text-ok" />
-                      <span>智能体自治 · 观察模式</span>
-                    </>
+                    <Bot size={13} className="shrink-0 text-ok" />
                   )}
+                  <span className="sr-only">
+                    {isHuman ? '人工接管中 · 智能体挂起' : '智能体自治 · 观察模式'}
+                  </span>
                 </button>
               </Tip>
 
               {/* 最大化 / 还原 */}
-              <button
-                onClick={() => setMaximized(!maximized)}
-                aria-label={maximized ? '缩小视窗' : '放大视窗'}
-                className="flex h-7 w-7 items-center justify-center rounded border border-[#2B2A27]/15 bg-canvas hover:border-[#2B2A27] dark:border-white/15 dark:hover:border-white"
-              >
-                {maximized ? <Minimize2 size={12} /> : <Maximize2 size={12} />}
-              </button>
+              <Tip label={maximized ? '还原终端视窗' : '全屏展开终端'}>
+                <button
+                  onClick={() => setMaximized(!maximized)}
+                  aria-label={maximized ? '缩小视窗' : '放大视窗'}
+                  className="flex h-7 w-7 items-center justify-center rounded border border-[#2B2A27]/15 bg-canvas hover:border-[#2B2A27] dark:border-white/15 dark:hover:border-white"
+                >
+                  {maximized ? <Minimize2 size={13} /> : <Maximize2 size={13} />}
+                </button>
+              </Tip>
 
               {/* 关闭终端 */}
-              <button
-                onClick={() => toggleTerminal(false)}
-                aria-label="关闭终端"
-                className="flex h-7 w-7 items-center justify-center rounded border border-[#2B2A27]/15 bg-canvas hover:border-[#2B2A27] dark:border-white/15 dark:hover:border-white"
-              >
-                <X size={13} />
-              </button>
+              <Tip label="关闭 PTY 终端 (Ctrl+~)">
+                <button
+                  onClick={() => toggleTerminal(false)}
+                  aria-label="关闭终端"
+                  className="flex h-7 w-7 items-center justify-center rounded border border-[#2B2A27]/15 bg-canvas hover:border-[#2B2A27] dark:border-white/15 dark:hover:border-white"
+                >
+                  <X size={14} />
+                </button>
+              </Tip>
             </div>
           </div>
 
@@ -287,13 +288,15 @@ export function SreTerminalDrawer() {
                   className="flex-1 bg-transparent font-mono text-[12px] text-ink outline-none placeholder:text-mute/50 dark:text-zinc-100"
                 />
                 <span className="h-4 w-2 bg-[#D97706] animate-pulse shrink-0" />
-                <button
-                  type="submit"
-                  aria-label="执行命令"
-                  className="flex h-6 w-6 items-center justify-center rounded border border-[#2B2A27]/20 hover:border-[#2B2A27] dark:border-white/20"
-                >
-                  <CornerDownLeft size={11} />
-                </button>
+                <Tip label="执行救火命令 (Enter)">
+                  <button
+                    type="submit"
+                    aria-label="执行命令"
+                    className="flex h-6 w-6 items-center justify-center rounded border border-[#2B2A27]/20 hover:border-[#2B2A27] dark:border-white/20"
+                  >
+                    <CornerDownLeft size={11} />
+                  </button>
+                </Tip>
               </form>
             ) : (
               <div className="flex items-center gap-1.5 pt-1 text-[11px] text-mute">

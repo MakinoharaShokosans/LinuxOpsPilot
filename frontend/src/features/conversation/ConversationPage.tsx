@@ -1,7 +1,19 @@
 /** 对话页：消息流 + 输入台 + 右侧检视器。 */
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useParams, useSearch } from '@tanstack/react-router';
-import { ArrowDown, BookOpen, ChevronRight, Menu, PanelRight, Radio, SquareTerminal, WifiOff } from 'lucide-react';
+import {
+  ArrowDown,
+  BookOpen,
+  Boxes,
+  ChevronRight,
+  HardDrive,
+  Menu,
+  PanelRight,
+  Radio,
+  SquareTerminal,
+  WifiOff,
+  Zap,
+} from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { api } from '../../api/endpoints';
@@ -418,21 +430,44 @@ export function ConversationPage() {
               </IconButton>
             </Tip>
 
-            {/* 常驻就绪墨印与主机遥测胶囊 */}
+            {/* 常驻就绪墨印与主机遥测胶囊 (极简参数微标 + 纯 SVG + Tips 穿透) */}
             <div
-              className="hidden xl:flex items-center gap-2 rounded-md border border-ink/[0.08] bg-ink/[0.02] px-2.5 py-1 font-mono text-[10.5px] text-mute dark:border-white/[0.08] dark:bg-white/[0.03]"
+              className="hidden xl:flex items-center gap-1.5 rounded-md border border-ink/[0.08] bg-ink/[0.02] px-2 py-0.5 font-mono text-[10.5px] text-mute dark:border-white/[0.08] dark:bg-white/[0.03]"
               aria-label="主机探针遥测状态"
             >
-              <span className="flex items-center gap-1.5 font-semibold text-ok">
-                <span className="h-1.5 w-1.5 rounded-full bg-ok animate-pulse" />
-                SRE HARNESS ONLINE
-              </span>
-              <span className="text-ink/15 dark:text-white/20">|</span>
-              <span>LOAD: 0.42</span>
-              <span className="text-ink/15 dark:text-white/20">|</span>
-              <span>MEM: 18.2G/32G</span>
-              <span className="text-ink/15 dark:text-white/20">|</span>
-              <span>DOCKER: 8 RUNNING</span>
+              <Tip label="SRE Kernel Harness: 实时遥测挂载 (127.0.0.1 · 6.8.0-sre)">
+                <span className="flex cursor-default items-center gap-1 px-1 py-0.5 font-semibold text-ok rounded hover:bg-ink/[0.04] dark:hover:bg-white/[0.06] transition-colors">
+                  <span className="h-1.5 w-1.5 rounded-full bg-ok animate-pulse" />
+                  <span>SRE ONLINE</span>
+                </span>
+              </Tip>
+
+              <span className="text-ink/15 dark:text-white/20 select-none">|</span>
+
+              <Tip label="CPU Load: 0.42, 0.39, 0.46 (10 核 i5-12500H)">
+                <span className="flex cursor-default items-center gap-1 px-1 py-0.5 rounded text-ink/80 dark:text-zinc-300 hover:bg-ink/[0.04] dark:hover:bg-white/[0.06] transition-colors">
+                  <Zap size={11} strokeWidth={1.8} className="shrink-0" />
+                  <span className="tabular-nums">0.42</span>
+                </span>
+              </Tip>
+
+              <span className="text-ink/15 dark:text-white/20 select-none">|</span>
+
+              <Tip label="Memory: 18.2G / 32.0G used (57%) · Swap: 0B">
+                <span className="flex cursor-default items-center gap-1 px-1 py-0.5 rounded text-ink/80 dark:text-zinc-300 hover:bg-ink/[0.04] dark:hover:bg-white/[0.06] transition-colors">
+                  <HardDrive size={11} strokeWidth={1.8} className="shrink-0" />
+                  <span className="tabular-nums">57%</span>
+                </span>
+              </Tip>
+
+              <span className="text-ink/15 dark:text-white/20 select-none">|</span>
+
+              <Tip label="Docker: 8 running, 0 failed units">
+                <span className="flex cursor-default items-center gap-1 px-1 py-0.5 rounded text-ink/80 dark:text-zinc-300 hover:bg-ink/[0.04] dark:hover:bg-white/[0.06] transition-colors">
+                  <Boxes size={11} strokeWidth={1.8} className="shrink-0" />
+                  <span className="tabular-nums">8</span>
+                </span>
+              </Tip>
             </div>
             {run && meta && (
               <MinimalStatusMark status={run.status} meta={meta} className="px-1" />

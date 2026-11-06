@@ -95,12 +95,17 @@ describe('SreEntityPeek', () => {
 
     const copyBtn = screen.getByRole('button', { name: '复制命令' });
     expect(copyBtn).not.toBeNull();
+    expect(copyBtn.className).toContain('h-7');
+    expect(copyBtn.className).toContain('w-7');
+    expect(copyBtn.querySelector('svg')).not.toBeNull();
 
     fireEvent.click(copyBtn);
     expect(writeText).toHaveBeenCalledWith('/usr/bin/head');
 
-    // Button transitions to "已复制"
+    // Button transitions to "已复制" while maintaining fixed h-7 w-7 geometry
     expect(screen.getByText('已复制')).not.toBeNull();
+    expect(copyBtn.className).toContain('h-7');
+    expect(copyBtn.className).toContain('w-7');
   });
 
   it('has detailed SRE specs for all 5 core entities', () => {

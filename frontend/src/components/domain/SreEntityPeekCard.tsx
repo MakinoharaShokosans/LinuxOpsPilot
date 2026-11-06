@@ -18,6 +18,7 @@ import {
 } from 'react';
 import { createPortal } from 'react-dom';
 import { useAnchor } from '../ui/useAnchor';
+import { Tip } from '../ui/Tooltip';
 
 const IS_TEST = typeof process !== 'undefined' && process.env?.NODE_ENV === 'test';
 
@@ -262,14 +263,24 @@ export function SreEntityPeek({
                       <Terminal size={11} className="shrink-0" />
                       <span className="truncate">{entity.commandToCopy}</span>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => handleCopy(entity.commandToCopy as string)}
-                      className="inline-flex shrink-0 items-center gap-1 rounded border border-ink/[0.15] bg-ink/[0.03] px-2 py-1 font-mono text-[10.5px] font-medium text-ink transition hover:border-[#2B2A27] hover:bg-[#2B2A27] hover:text-white active:scale-95 dark:border-white/20 dark:bg-white/[0.04] dark:hover:border-white dark:hover:bg-white dark:hover:text-[#18181B]"
+                    <Tip
+                      label={
+                        copied
+                          ? '已复制排障命令到剪贴板！'
+                          : (entity.commandLabel || '复制排障命令')
+                      }
+                      side="left"
                     >
-                      {copied ? <Check size={11} className="text-ok" /> : <Copy size={11} />}
-                      <span>{copied ? '已复制' : '复制命令'}</span>
-                    </button>
+                      <button
+                        type="button"
+                        aria-label={copied ? '已复制' : '复制命令'}
+                        onClick={() => handleCopy(entity.commandToCopy as string)}
+                        className="flex h-7 w-7 shrink-0 items-center justify-center rounded border border-ink/[0.15] bg-ink/[0.03] text-ink transition hover:border-[#2B2A27] hover:bg-[#2B2A27] hover:text-white active:scale-95 dark:border-white/20 dark:bg-white/[0.04] dark:hover:border-white dark:hover:bg-white dark:hover:text-[#18181B]"
+                      >
+                        {copied ? <Check size={12} className="text-ok" /> : <Copy size={12} />}
+                        <span className="sr-only">{copied ? '已复制' : '复制命令'}</span>
+                      </button>
+                    </Tip>
                   </div>
                 )}
               </motion.div>
