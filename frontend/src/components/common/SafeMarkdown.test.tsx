@@ -65,4 +65,33 @@ describe('SafeMarkdown', () => {
     expect(container.querySelectorAll('li')).toHaveLength(2);
     expect(container.querySelector('pre code')?.textContent).toContain('const x = 1;');
   });
+
+  it('renders SRE status tags with high-contrast badge styles', () => {
+    const { container } = render(
+      <SafeMarkdown text="排查结论：[已定性 · 良性] 暂无风险，建议 [待处置 · P2]" />,
+    );
+    expect(container.querySelector('.sre-tag-ok')).not.toBeNull();
+    expect(container.querySelector('.sre-tag-ok')?.textContent).toContain('[已定性 · 良性]');
+    expect(container.querySelector('.sre-tag-warn')).not.toBeNull();
+    expect(container.querySelector('.sre-tag-warn')?.textContent).toContain('[待处置 · P2]');
+  });
+
+  it('renders restricted compliance callout for sensitive read-only audits', () => {
+    const { container } = render(
+      <SafeMarkdown text="> 提示：未提权，只读取证合规隔离，未变更系统配置" />,
+    );
+    expect(container.querySelector('.sre-callout-restricted')).not.toBeNull();
+    expect(container.textContent).toContain('只读取证合规审计隔离');
+    expect(container.textContent).toContain('AUDIT-ID: SEC-ENFORCED · READONLY');
+  });
+
+  it('wraps recognized SRE technical entities in interactive probes', () => {
+    const { container } = render(
+      <SafeMarkdown text="检查到进程收到 SIGXFSZ 信号，执行 `/usr/bin/head` 查看" />,
+    );
+    const probes = container.querySelectorAll('.cursor-help');
+    expect(probes.length).toBeGreaterThanOrEqual(2);
+    expect(container.textContent).toContain('SIGXFSZ');
+    expect(container.textContent).toContain('/usr/bin/head');
+  });
 });

@@ -19,7 +19,7 @@ import { createPortal } from 'react-dom';
 import { cn } from '../../utils/text';
 import { useAnchor, type Side } from './useAnchor';
 
-const SHOW_DELAY_MS = 380;
+const SHOW_DELAY_MS = 80;
 
 /** 同一时刻只留一个气泡 */
 let closeCurrent: (() => void) | null = null;
@@ -31,6 +31,7 @@ interface TipProps {
   side?: Side;
   align?: 'start' | 'center' | 'end';
   disabled?: boolean;
+  className?: string;
   children: ReactElement<Record<string, unknown>>;
 }
 
@@ -49,6 +50,7 @@ export function Tip({
   side = 'bottom',
   align = 'center',
   disabled,
+  className,
   children,
 }: TipProps) {
   const [open, setOpen] = useState(false);
@@ -102,6 +104,8 @@ export function Tip({
   const call = (name: string, e: unknown) =>
     (props[name] as ((e: unknown) => void) | undefined)?.(e);
 
+  const currentSide = placement?.side ?? side;
+
   return (
     <>
       {cloneElement(child, {
@@ -138,25 +142,41 @@ export function Tip({
               ref={pop}
               id={id}
               role="tooltip"
-              initial={{ opacity: 0, scale: 0.96 }}
+              initial={{ opacity: 0, scale: 0.98 }}
               animate={{ opacity: placement ? 1 : 0, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.97 }}
-              transition={{ duration: 0.12 }}
+              exit={{ opacity: 0, scale: 0.98 }}
+              transition={{ duration: 0.08, ease: [0.16, 1, 0.3, 1] }}
               style={{
                 position: 'fixed',
                 top: placement?.top ?? 0,
                 left: placement?.left ?? 0,
               }}
               className={cn(
-                'pointer-events-none z-tip flex max-w-[260px] items-center gap-2 rounded-lg bg-ink px-2.5 py-1.5 text-[12px] font-medium leading-snug text-canvas',
-                'shadow-[0_6px_20px_-4px_rgb(0_0_0/0.35)] dark:bg-raised dark:text-ink dark:ring-1 dark:ring-white/10',
+                'pointer-events-none z-tip relative flex max-w-[280px] items-center gap-1.5 rounded-[3px] px-2 py-1',
+                'bg-white text-[#1A1A1A] border border-[#2B2A27] shadow-[0_2px_8px_-2px_rgba(43,42,39,0.15)]',
+                'font-mono text-[10px] leading-tight select-none',
+                'dark:bg-[#18181A] dark:text-[#F4F4F5] dark:border-white/30 dark:shadow-[0_2px_8px_-2px_rgba(0,0,0,0.5)]',
+                className,
               )}
             >
-              <span className="min-w-0 break-words">{label}</span>
+              <span className="min-w-0 break-words font-medium">{label}</span>
               {hint && (
-                <kbd className="shrink-0 rounded bg-canvas/15 px-1 font-mono text-[10.5px] dark:bg-ink/10">
+                <kbd className="shrink-0 rounded-[2px] border border-[#2B2A27]/20 bg-ink/[0.04] px-1 font-mono text-[9px] text-[#2B2A27]/80 dark:border-white/20 dark:bg-white/[0.06] dark:text-white/80">
                   {hint}
                 </kbd>
+              )}
+              {/* Layer 3 4px 锐角微指示三角 */}
+              {currentSide === 'bottom' && (
+                <div className="absolute -top-1 left-1/2 -translate-x-1/2 h-0 w-0 border-x-4 border-x-transparent border-b-4 border-b-[#2B2A27] dark:border-b-white/30" />
+              )}
+              {currentSide === 'top' && (
+                <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 h-0 w-0 border-x-4 border-x-transparent border-t-4 border-t-[#2B2A27] dark:border-t-white/30" />
+              )}
+              {currentSide === 'right' && (
+                <div className="absolute -left-1 top-1/2 -translate-y-1/2 h-0 w-0 border-y-4 border-y-transparent border-r-4 border-r-[#2B2A27] dark:border-r-white/30" />
+              )}
+              {currentSide === 'left' && (
+                <div className="absolute -right-1 top-1/2 -translate-y-1/2 h-0 w-0 border-y-4 border-y-transparent border-l-4 border-l-[#2B2A27] dark:border-l-white/30" />
               )}
             </motion.div>
           )}
@@ -166,3 +186,6 @@ export function Tip({
     </>
   );
 }
+
+/** omoi-aesthetic Layer 3 几何工程微气泡别名 */
+export const GeometricTooltip = Tip;

@@ -23,6 +23,7 @@ import { Select } from '../../components/ui/Select';
 import { Button, IconButton, Modal } from '../../components/ui/primitives';
 import { queueOf, useQueueStore } from '../../stores/useQueueStore';
 import { useUiStore } from '../../stores/useUiStore';
+import { useCockpitStore } from '../../stores/useCockpitStore';
 import type { PermissionLevel } from '../../types/api';
 import { cn, formatTokens } from '../../utils/text';
 
@@ -60,7 +61,7 @@ function ModelPicker({
       value={current}
       placement="up"
       disabled={!query.data || save.isPending}
-      leading={<span aria-hidden className="h-2 w-2 shrink-0 rounded-full bg-brand" />}
+      leading={<span aria-hidden className="h-2 w-2 shrink-0 rounded-full bg-[#2B2A27] dark:bg-white" />}
       onChange={(value) =>
         save.mutate({
           model: value === AUTO ? null : value,
@@ -83,26 +84,81 @@ function ModelPicker({
   );
 }
 
-function ContextRing({ percent, onClick }: { percent: number; onClick: () => void }) {
-  const r = 8;
+/**
+ * 母题 A：极坐标尺规旋切 (Compass & Polar Sweep)
+ * 高精度 SRE 仪表盘：刻度背景、12 点钟基准线、显式百分比参数微标、悬停参数气泡
+ */
+function ContextRing({
+  percent,
+  tokens,
+  limit,
+  onClick,
+}: {
+  percent: number;
+  tokens?: number | null;
+  limit?: number | null;
+  onClick: () => void;
+}) {
+  const r = 8.5;
   const c = 2 * Math.PI * r;
-  const tone = percent > 85 ? 'text-bad' : percent > 65 ? 'text-warn' : 'text-accent';
+  const tone =
+    percent > 85
+      ? 'stroke-[#DC2626] text-[#DC2626]'
+      : percent > 65
+        ? 'stroke-[#D97706] text-[#D97706]'
+        : 'stroke-[#2B2A27] text-[#2B2A27] dark:stroke-zinc-200 dark:text-zinc-200';
+
+  const label =
+    tokens && limit
+      ? `${formatTokens(tokens)} / ${formatTokens(limit)} Token 容量`
+      : `上下文容量 ${Math.round(percent)}%`;
+
   return (
-    <IconButton label={`上下文 ${Math.round(percent)}%`} onClick={onClick} side="top">
-      <svg width="20" height="20" viewBox="0 0 20 20" className="-rotate-90">
-        <circle cx="10" cy="10" r={r} fill="none" strokeWidth="2.2" className="stroke-ink/[0.12]" />
-        <circle
-          cx="10"
-          cy="10"
-          r={r}
-          fill="none"
-          strokeWidth="2.2"
-          strokeLinecap="round"
-          strokeDasharray={c}
-          strokeDashoffset={c * (1 - Math.min(percent, 100) / 100)}
-          className={cn('stroke-current transition-[stroke-dashoffset] duration-500', tone)}
-        />
-      </svg>
+    <IconButton label={label} hint="点击检视" onClick={onClick} side="top" className="h-8 w-auto px-1.5">
+      <div className="flex items-center gap-1.5 select-none">
+        <svg width="22" height="22" viewBox="0 0 24 24" className="shrink-0 -rotate-90">
+          {/* 刻度背景轨与 1px 细线外圆 */}
+          <circle
+            cx="12"
+            cy="12"
+            r={r}
+            fill="none"
+            strokeWidth="1.8"
+            className="stroke-ink/[0.1] dark:stroke-white/[0.15]"
+          />
+          {/* 12 点钟基准工程刻度引线 */}
+          <line
+            x1="12"
+            y1="1.5"
+            x2="12"
+            y2="4"
+            stroke="currentColor"
+            strokeWidth="1.6"
+            className="stroke-ink/40 dark:stroke-white/50"
+          />
+          {/* 3、6、9 点钟微型刻度点 */}
+          <circle cx="21" cy="12" r="0.65" className="fill-ink/30 dark:fill-white/30" />
+          <circle cx="12" cy="21" r="0.65" className="fill-ink/30 dark:fill-white/30" />
+          <circle cx="3" cy="12" r="0.65" className="fill-ink/30 dark:fill-white/30" />
+          {/* 动态旋切极轴圆弧 */}
+          <circle
+            cx="12"
+            cy="12"
+            r={r}
+            fill="none"
+            strokeWidth="2.2"
+            strokeLinecap="round"
+            strokeDasharray={c}
+            strokeDashoffset={c * (1 - Math.min(percent, 100) / 100)}
+            className={cn('transition-[stroke-dashoffset,stroke] duration-500 ease-out', tone)}
+          />
+          {/* 中心微支点 */}
+          <circle cx="12" cy="12" r="1.2" className="fill-ink/30 dark:fill-white/40" />
+        </svg>
+        <span className="font-mono text-[9.5px] font-semibold tabular-nums text-ink/80 dark:text-white/80">
+          {Math.round(percent)}%
+        </span>
+      </div>
     </IconButton>
   );
 }
@@ -112,6 +168,8 @@ export function Composer({
   workspaceId,
   busy,
   contextPercent,
+  contextTokens,
+  contextLimit,
   onSubmit,
   onCancel,
 }: {
@@ -120,12 +178,13 @@ export function Composer({
   /** 当前有任务在运行或等待审批 */
   busy: boolean;
   contextPercent: number | null;
+  contextTokens?: number | null;
+  contextLimit?: number | null;
   onSubmit: (text: string, level: PermissionLevel, confirmedFull: boolean) => Promise<void>;
   onCancel: () => void;
 }) {
   const phone = useUiStore((s) => s.phone);
   const openCard = useUiStore((s) => s.openCard);
-  const toggleInspector = useUiStore((s) => s.toggleInspector);
   const draftKey = `linuxops.draft.${sessionId}`;
   const [text, setText] = useState(() => {
     try {
@@ -149,7 +208,9 @@ export function Composer({
   const [level, setLevel] = useState<PermissionLevel>(defaultLevel);
   useEffect(() => setLevel(defaultLevel), [defaultLevel, sessionId]);
   const [asking, setAsking] = useState<string | null>(null);
-  const danger = level === 'full_permissions';
+  const fleet = useCockpitStore((s) => s.fleet);
+  const isProd = fleet === 'prod';
+  const danger = level === 'full_permissions' || isProd;
 
   useEffect(() => {
     try {
@@ -257,11 +318,21 @@ export function Composer({
           submit();
         }}
         className={cn(
-          'rounded-[24px] border bg-card/95 p-2.5 shadow-float backdrop-blur-2xl transition-shadow duration-300',
-          'focus-within:shadow-[0_20px_50px_-12px_rgb(var(--c-accent)/0.25),0_0_0_2px_rgb(var(--c-accent)/0.35)]',
-          danger ? 'border-bad/40' : 'border-ink/[0.08] dark:border-white/[0.09]',
+          'rounded-[24px] border bg-card/95 p-2.5 shadow-float backdrop-blur-2xl transition-all duration-300',
+          'focus-within:border-[#2B2A27] dark:focus-within:border-white/40 focus-within:ring-1 focus-within:ring-[#2B2A27]/20',
+          isProd
+            ? 'border-[#DC2626] shadow-[0_0_15px_rgba(220,38,38,0.08)]'
+            : danger
+              ? 'border-bad/40'
+              : 'border-ink/[0.08] dark:border-white/[0.09]',
         )}
       >
+        {isProd && (
+          <div className="mb-1.5 flex items-center gap-1.5 px-2.5 py-1 font-mono text-[10.5px] font-semibold text-[#DC2626] border-b border-[#DC2626]/20 bg-[#DC2626]/[0.04] rounded-t-[18px]">
+            <ShieldAlert size={12} className="shrink-0" />
+            <span>PROD 生产核心集群 · 所有写操作受限于高危二次审计</span>
+          </div>
+        )}
         <textarea
           ref={area}
           aria-label="消息"
@@ -304,9 +375,12 @@ export function Composer({
           {contextPercent !== null && (
             <ContextRing
               percent={contextPercent}
+              tokens={contextTokens}
+              limit={contextLimit}
               onClick={() => {
                 openCard('context');
-                toggleInspector();
+                useCockpitStore.getState().setRightDrawerView('tasks');
+                useUiStore.getState().setInspectorOpen(true);
               }}
             />
           )}
@@ -327,10 +401,10 @@ export function Composer({
             side="top"
             disabled={!ready}
             className={cn(
-              'h-9 w-9 rounded-full',
+              'h-9 w-9 rounded-full transition-all',
               ready
-                ? 'bg-brand text-white shadow-[0_4px_16px_-2px_rgb(var(--c-accent)/0.5)] hover:text-white hover:brightness-110'
-                : 'bg-ink/10',
+                ? 'bg-[#2B2A27] text-white hover:bg-[#1A1A1A] dark:bg-white dark:text-[#1A1A1A] dark:hover:bg-zinc-200 shadow-sm'
+                : 'bg-ink/10 text-mute/50',
             )}
           >
             {busy ? <ListPlus size={17} /> : <ArrowUp size={18} strokeWidth={2.5} />}

@@ -35,25 +35,26 @@ export function ReasoningBlock({ item }: { item: Item }) {
     : `思考${duration >= 500 ? ` ${formatDuration(duration)}` : ''}`;
 
   return (
-    <div className="text-[13px]">
+    <div className="relative pl-3 py-0.5 border-l border-line-subtle dark:border-[#27272A] group transition-colors">
       <button
         aria-expanded={open}
         onClick={() => {
           touched.current = true;
           setOpen((v) => !v);
         }}
-        className="group flex items-center gap-1.5 py-0.5 text-mute transition-colors hover:text-ink"
+        className="group flex items-center gap-1.5 py-0.5 font-mono text-[11.5px] text-ink-subtle transition-colors hover:text-ink-heavy"
       >
-        <Brain size={14} className={cn('shrink-0', item.streaming && 'animate-breathe text-accent')} />
-        <span className="tabular-nums font-mono text-[12.5px] underline decoration-ink/20 decoration-dashed underline-offset-4 group-hover:decoration-ink/50 dark:decoration-white/20 dark:group-hover:decoration-white/50">
+        <span className="text-ink-ghost select-none">⎿</span>
+        <Brain size={12} className={cn('shrink-0', item.streaming && 'animate-breathe text-accent')} />
+        <span className="tabular-nums font-mono text-[11.5px]">
           {label}
         </span>
-        <Chevron open={open} size={12} />
+        <Chevron open={open} size={11} className="text-ink-ghost group-hover:text-ink-heavy" />
       </button>
       <Reveal open={open}>
         <div
           ref={body}
-          className="mt-1.5 max-h-72 overflow-y-auto whitespace-pre-wrap break-words pl-5 font-mono text-[12.5px] leading-relaxed text-mute/80 dark:text-mute/70"
+          className="mt-1 mb-2 ml-1 pl-3 py-2 border-l border-ink/20 dark:border-white/20 bg-[#FAFAFA]/90 dark:bg-[#121214]/90 max-h-72 overflow-y-auto whitespace-pre-wrap break-words font-mono text-[11px] leading-relaxed text-ink-body"
         >
           {stripControl(item.text)}
           {item.streaming && (

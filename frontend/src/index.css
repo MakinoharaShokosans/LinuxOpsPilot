@@ -7,81 +7,93 @@
 @tailwind components;
 @tailwind utilities;
 
-/* 主题令牌：RGB 三元组，见 docs/10_frontend/03_visual_design.md §3 */
+/* 主题令牌：RGB 三元组，高反差 SRE 工业图纸体系，脱水彻底去 AI 紫色化 */
 @layer base {
   :root {
     color-scheme: light;
-    /* 现代高精密基准色：冷调演播室石板白（Studio Slate），彻底告别发黄的纸质感与庸俗纯白 */
-    --c-canvas: 248 250 252;
-    --c-side: 241 245 249;
-    --c-card: 255 255 255;
-    --c-raised: 255 255 255;
-    --c-line: 226 232 240;
-    --c-ink: 15 23 42;
-    --c-mute: 100 116 139;
-    --c-accent: 99 102 241;
-    --c-accent-soft: 238 242 255;
-    --c-accent-2: 139 92 246;
-    --c-ok: 16 185 129;
-    --c-warn: 245 158 11;
-    --c-bad: 239 68 68;
-    --c-code: 241 245 249;
-    --c-code-ink: 15 23 42;
-    /* Linear/Raycast 电气蓝紫色微渐变，只用于最关键的高光点按与焦点引导 */
-    --brand: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #d946ef 100%);
-    /* 1px 发丝倒角边框 + 顶部物理高光 + 多层超软漫射投影，塑造精密五金/高光屏幕质感 */
-    --hairline: 0 0 0 1px rgb(var(--c-ink) / 0.06);
+    /* 纯白主画布与浅底：彻底消除泛黄与 AI 紫色，确立精密建筑图纸基准 */
+    --c-canvas: 255 255 255;      /* #FFFFFF 纯白工作台 */
+    --c-side: 250 250 250;        /* #FAFAFA 极浅侧栏 */
+    --c-card: 255 255 255;        /* #FFFFFF 浮动卡片 */
+    --c-raised: 255 255 255;      /* #FFFFFF 抽屉与浮层 */
+    --c-line: 234 234 234;        /* #EAEAEA 1px 底网辅助线 */
+    --c-ink: 26 26 26;            /* #1A1A1A 墨印主字阶 */
+    --c-mute: 140 140 140;        /* #8C8C8C 辅助微标与默认图标 */
+    --c-accent: 43 42 39;         /* #2B2A27 墨黑对比线/主操作 */
+    --c-accent-soft: 245 245 245; /* #F5F5F5 极浅墨阶 */
+    --c-accent-2: 71 85 105;      /* #475569 墨青灰（受限合规/审计） */
+    --c-ok: 46 125 50;            /* #2E7D32 翠墨绿（检查通过/良性） */
+    --c-warn: 217 119 6;          /* #D97706 琥珀黄（P2 建议/性能抖动） */
+    --c-bad: 220 38 38;           /* #DC2626 朱砂红（P1 故障/高危拦截） */
+    --c-code: 250 250 250;        /* #FAFAFA 代码块底色 */
+    --c-code-ink: 26 26 26;       /* #1A1A1A 代码文本 */
+    /* 四级灰度字典 (高反差墨阶，彻底消除全站单一黑) */
+    --ink-heavy: #1A1A1A;     /* Level 1: 结论要点、现状/下一步标签、错误核心 (一眼可见) */
+    --ink-body:  #505050;     /* Level 2: 分析说明正文 (舒适阅读) */
+    --ink-subtle:#8A8A8A;     /* Level 3: 命令语法、参数键、折叠状态 */
+    --ink-ghost: #B5B5B5;     /* Level 4: 垂直辅助引线、退出码、微秒耗时 */
+    --line-subtle: #EAEAEA;   /* 1px 机器时间轨细线 */
+    /* 墨黑钢印工业微渐变，替代廉价紫色渐变 */
+    --brand: linear-gradient(135deg, #2B2A27 0%, #1A1A1A 100%);
+    /* 1px 细线边框 + 微漫射阴影，严谨建筑图纸质感 */
+    --hairline: 0 0 0 1px rgb(var(--c-ink) / 0.08);
     --shadow-card:
-      var(--hairline), inset 0 1px 0 0 rgb(255 255 255 / 0.9), 0 1px 2px 0 rgb(15 23 42 / 0.03),
-      0 4px 12px -2px rgb(15 23 42 / 0.05), 0 16px 32px -8px rgb(15 23 42 / 0.06);
+      var(--hairline), inset 0 1px 0 0 rgb(255 255 255 / 0.9), 0 1px 2px 0 rgb(15 23 42 / 0.02),
+      0 3px 8px -1px rgb(15 23 42 / 0.04);
     --shadow-float:
-      var(--hairline), inset 0 1px 0 0 rgb(255 255 255 / 0.95), 0 4px 6px -1px rgb(15 23 42 / 0.04),
-      0 12px 28px -4px rgb(15 23 42 / 0.08), 0 32px 64px -12px rgb(15 23 42 / 0.12);
+      var(--hairline), inset 0 1px 0 0 rgb(255 255 255 / 0.95), 0 2px 4px -1px rgb(15 23 42 / 0.03),
+      0 8px 20px -3px rgb(15 23 42 / 0.06);
     --shadow-bento:
-      var(--hairline), inset 0 1px 0 0 rgb(255 255 255 / 0.8), 0 1px 3px 0 rgb(15 23 42 / 0.03),
-      0 8px 24px -4px rgb(15 23 42 / 0.05);
+      var(--hairline), inset 0 1px 0 0 rgb(255 255 255 / 0.8), 0 1px 2px 0 rgb(15 23 42 / 0.02),
+      0 4px 12px -2px rgb(15 23 42 / 0.03);
     --shadow-glow:
-      0 0 0 1px rgb(var(--c-accent) / 0.25), 0 4px 24px -2px rgb(var(--c-accent) / 0.25);
+      0 0 0 1px rgb(var(--c-accent) / 0.2), 0 2px 12px -2px rgb(var(--c-accent) / 0.15);
     --paper-noise: none;
-    --glow-a: 99 102 241;
-    --glow-b: 139 92 246;
-    --glow-strength: 0.08;
+    --glow-a: 240 240 240;
+    --glow-b: 245 245 245;
+    --glow-strength: 0.04;
   }
   :root[data-theme='dark'] {
     color-scheme: dark;
-    /* 黑曜石与深钛灰：Linear / Raycast 顶级黑夜美学，深邃通透，拒绝死黑 #000 */
-    --c-canvas: 11 13 18;
-    --c-side: 16 19 26;
-    --c-card: 21 25 35;
-    --c-raised: 28 34 46;
-    --c-line: 38 45 61;
-    --c-ink: 243 244 246;
-    --c-mute: 148 163 184;
-    --c-accent: 129 140 248;
-    --c-accent-soft: 30 27 75;
-    --c-accent-2: 167 139 250;
-    --c-ok: 52 211 153;
+    /* 钛黑与深冷灰：高反差精密暗色体系，纯净透彻 */
+    --c-canvas: 15 15 17;
+    --c-side: 20 20 23;
+    --c-card: 24 24 28;
+    --c-raised: 30 30 35;
+    --c-line: 44 44 50;
+    --c-ink: 245 245 247;
+    --c-mute: 150 150 156;
+    --c-accent: 235 235 235;
+    --c-accent-soft: 35 35 40;
+    --c-accent-2: 148 163 184;
+    --c-ok: 74 222 128;
     --c-warn: 251 191 36;
     --c-bad: 248 113 113;
-    --c-code: 10 12 16;
-    --c-code-ink: 241 245 249;
-    --brand: linear-gradient(135deg, #818cf8 0%, #a78bfa 50%, #f472b6 100%);
-    --hairline: 0 0 0 1px rgb(255 255 255 / 0.08);
+    --c-code: 18 18 21;
+    --c-code-ink: 245 245 247;
+    /* 暗色高反差墨阶字典 */
+    --ink-heavy: #F5F5F7;
+    --ink-body:  #A1A1AA;
+    --ink-subtle:#71717A;
+    --ink-ghost: #52525B;
+    --line-subtle: #27272A;
+    --brand: linear-gradient(135deg, #e4e4e7 0%, #ffffff 100%);
+    --hairline: 0 0 0 1px rgb(255 255 255 / 0.1);
     --shadow-card:
-      var(--hairline), inset 0 1px 0 0 rgb(255 255 255 / 0.08), 0 2px 4px 0 rgb(0 0 0 / 0.3),
-      0 8px 20px -4px rgb(0 0 0 / 0.45), 0 24px 48px -12px rgb(0 0 0 / 0.6);
+      var(--hairline), inset 0 1px 0 0 rgb(255 255 255 / 0.06), 0 2px 4px 0 rgb(0 0 0 / 0.25),
+      0 6px 16px -3px rgb(0 0 0 / 0.35);
     --shadow-float:
-      var(--hairline), inset 0 1px 0 0 rgb(255 255 255 / 0.1), 0 4px 8px 0 rgb(0 0 0 / 0.35),
-      0 16px 36px -6px rgb(0 0 0 / 0.6), 0 48px 88px -16px rgb(0 0 0 / 0.75);
+      var(--hairline), inset 0 1px 0 0 rgb(255 255 255 / 0.08), 0 3px 6px 0 rgb(0 0 0 / 0.3),
+      0 12px 28px -5px rgb(0 0 0 / 0.5);
     --shadow-bento:
-      var(--hairline), inset 0 1px 0 0 rgb(255 255 255 / 0.07), 0 2px 6px 0 rgb(0 0 0 / 0.35),
-      0 12px 28px -6px rgb(0 0 0 / 0.5);
+      var(--hairline), inset 0 1px 0 0 rgb(255 255 255 / 0.05), 0 2px 4px 0 rgb(0 0 0 / 0.25),
+      0 8px 18px -4px rgb(0 0 0 / 0.4);
     --shadow-glow:
-      0 0 0 1px rgb(var(--c-accent) / 0.35), 0 4px 28px -2px rgb(var(--c-accent) / 0.45);
+      0 0 0 1px rgb(var(--c-accent) / 0.25), 0 2px 14px -2px rgb(var(--c-accent) / 0.3);
     --paper-noise: none;
-    --glow-a: 129 140 248;
-    --glow-b: 167 139 250;
-    --glow-strength: 0.12;
+    --glow-a: 45 45 50;
+    --glow-b: 35 35 40;
+    --glow-strength: 0.05;
   }
 
   html,
@@ -367,14 +379,39 @@
   @apply mt-0;
 }
 .prose-agent blockquote {
-  @apply relative pl-4 text-ink/70;
+  @apply relative my-3 rounded-xl border border-ink/[0.1] bg-ink/[0.02] py-2.5 pl-4 pr-3 text-[13.5px] leading-relaxed text-ink/80 dark:border-white/[0.1] dark:bg-white/[0.02];
 }
 .prose-agent blockquote::before {
   content: '';
-  @apply absolute inset-y-1 left-0 w-[3px] rounded-full bg-brand opacity-70;
+  @apply absolute inset-y-2 left-0 w-[2px] rounded-full bg-ink/60 dark:bg-white/60;
 }
 .prose-agent :not(pre) > code {
-  @apply rounded-md bg-ink/[0.06] px-1.5 py-0.5 font-mono text-[0.85em];
+  @apply rounded border border-ink/[0.08] bg-ink/[0.04] px-1.5 py-0.5 font-mono text-[0.82em] text-ink dark:border-white/[0.1] dark:bg-white/[0.06] dark:text-zinc-200;
+}
+
+/* SRE 工业级 1px 细线状态 Tag 体系 (母题 B) */
+.sre-tag {
+  @apply inline-flex items-center gap-1 rounded-[4px] px-1.5 py-0.5 font-mono text-[11px] font-medium border leading-tight transition-colors;
+}
+.sre-tag-ok {
+  @apply border-ok/40 bg-ok/[0.08] text-ok dark:text-emerald-400;
+}
+.sre-tag-warn {
+  @apply border-warn/40 bg-warn/[0.08] text-warn dark:text-amber-400;
+}
+.sre-tag-danger {
+  @apply border-bad/40 bg-bad/[0.08] text-bad dark:text-red-400;
+}
+.sre-tag-neutral {
+  @apply border-accent-2/40 bg-accent-2/[0.08] text-accent-2 dark:text-slate-300;
+}
+
+/* SRE 架构图纸与诊断卡片 */
+.sre-blueprint-card {
+  @apply rounded-xl border border-ink/[0.1] bg-canvas p-4 shadow-sm transition-all duration-300 dark:border-white/[0.12] dark:bg-canvas;
+}
+.sre-callout-restricted {
+  @apply my-3 rounded-xl border border-accent-2/30 bg-ink/[0.02] p-3 text-[13px] leading-relaxed dark:border-accent-2/40 dark:bg-white/[0.02];
 }
 .prose-agent pre {
   @apply overflow-x-auto px-4 pb-4 pt-2 font-mono text-[12.5px] leading-relaxed;
@@ -400,6 +437,29 @@
 .prose-agent hr {
   @apply my-6 border-0 border-t border-ink/[0.08];
 }
+
+/* 四级字阶规范 (Display / Editorial / Code / Micro) */
+.text-display {
+  font-size: 16px;
+  line-height: 1.5;
+  font-weight: 600;
+}
+.text-editorial {
+  font-size: 13.5px;
+  line-height: 1.6;
+  font-weight: 400;
+}
+.text-code {
+  font-family: var(--font-mono, monospace);
+  font-size: 11.5px;
+  line-height: 1.45;
+}
+.text-micro {
+  font-family: var(--font-mono, monospace);
+  font-size: 10px;
+  line-height: 1.2;
+}
+
 
 /* 连续曲率：支持 corner-shape 的浏览器把圆角升级为超椭圆，其余保持普通圆角 */
 @supports (corner-shape: squircle) {

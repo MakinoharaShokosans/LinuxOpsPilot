@@ -24,6 +24,11 @@ export default {
         bad: token('bad'),
         code: token('code'),
         'code-ink': token('code-ink'),
+        'ink-heavy': 'var(--ink-heavy)',
+        'ink-body': 'var(--ink-body)',
+        'ink-subtle': 'var(--ink-subtle)',
+        'ink-ghost': 'var(--ink-ghost)',
+        'line-subtle': 'var(--line-subtle)',
       },
       fontFamily: {
         sans: [

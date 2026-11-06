@@ -65,18 +65,18 @@ export function SreQuickCards({
               key={action.id}
               disabled={disabled}
               onClick={() => onSelect(action.prompt)}
-              className="group relative flex flex-col items-start gap-2 rounded-2xl border border-ink/[0.07] bg-card/60 p-4 text-left transition-all hover:border-accent/40 hover:bg-raised hover:shadow-card active:scale-[0.99] disabled:opacity-50 dark:border-white/[0.07] dark:bg-card/40 dark:hover:border-accent/50 dark:hover:bg-white/[0.04]"
+              className="group relative flex flex-col items-start gap-2.5 rounded-xl border border-ink/[0.09] bg-card p-4 text-left shadow-sm transition-all hover:border-[#2B2A27] hover:shadow-card active:scale-[0.99] disabled:opacity-50 dark:border-white/[0.09] dark:bg-card dark:hover:border-white/50"
             >
               <div className="flex w-full items-center justify-between">
-                <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-accent/10 text-accent transition-colors group-hover:bg-accent group-hover:text-white">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-ink/[0.08] bg-ink/[0.03] text-ink transition-colors group-hover:border-[#2B2A27] group-hover:bg-[#2B2A27] group-hover:text-white dark:border-white/[0.1] dark:bg-white/[0.04] dark:group-hover:border-white dark:group-hover:bg-white dark:group-hover:text-[#1A1A1A]">
                   <Icon size={16} />
                 </div>
-                <span className="rounded-full bg-ink/[0.04] px-2 py-0.5 text-2xs font-medium text-mute dark:bg-white/[0.06]">
+                <span className="rounded-[4px] border border-ink/[0.08] bg-ink/[0.03] px-2 py-0.5 font-mono text-[11px] font-medium text-mute dark:border-white/[0.1] dark:bg-white/[0.04]">
                   {action.badge}
                 </span>
               </div>
               <div>
-                <h3 className="text-[13.5px] font-semibold text-ink group-hover:text-accent">
+                <h3 className="text-[13.5px] font-semibold text-ink">
                   {action.title}
                 </h3>
                 <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-mute">

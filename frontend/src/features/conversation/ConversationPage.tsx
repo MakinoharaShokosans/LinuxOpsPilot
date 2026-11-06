@@ -1,7 +1,7 @@
 /** 对话页：消息流 + 输入台 + 右侧检视器。 */
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useParams, useSearch } from '@tanstack/react-router';
-import { ArrowDown, ChevronRight, Menu, PanelRight, WifiOff } from 'lucide-react';
+import { ArrowDown, BookOpen, ChevronRight, Menu, PanelRight, Radio, SquareTerminal, WifiOff } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { api } from '../../api/endpoints';
@@ -15,12 +15,15 @@ import { useContextSnapshot, useSessionSettings } from '../../api/useSettings';
 import { SafeMarkdown } from '../../components/common/SafeMarkdown';
 import { StarLogo } from '../../components/common/BrandLogo';
 import { McpStatus } from '../../components/domain/McpStatus';
+import { SreFleetSwitcher } from '../../components/domain/SreProductionGuard';
+import { SreStorageGaugeStrip } from '../../components/domain/SreNetworkStorageDial';
 import { InlineEdit } from '../../components/ui/InlineEdit';
-import { IconButton, SPRING } from '../../components/ui/primitives';
+import { IconButton } from '../../components/ui/primitives';
 import { Tip } from '../../components/ui/Tooltip';
 import { useAppStore } from '../../stores/useAppStore';
 import { queueOf, useQueueStore } from '../../stores/useQueueStore';
 import { useUiStore } from '../../stores/useUiStore';
+import { useCockpitStore } from '../../stores/useCockpitStore';
 import { TERMINAL_STATUSES, type PermissionLevel, type Task, type Turn } from '../../types/api';
 import { rememberLocation } from '../../utils/lastLocation';
 import {
@@ -116,6 +119,16 @@ export function ConversationPage() {
   const drawerOpen = useUiStore((s) => s.drawerOpen);
   const toggleInspector = useUiStore((s) => s.toggleInspector);
   const markSessionRead = useUiStore((s) => s.markSessionRead);
+
+  const terminalOpen = useCockpitStore((s) => s.terminalOpen);
+  const toggleTerminal = useCockpitStore((s) => s.toggleTerminal);
+  const openArtifact = useCockpitStore((s) => s.openArtifact);
+  const rightDrawerView = useCockpitStore((s) => s.rightDrawerView);
+  const setRightDrawerView = useCockpitStore((s) => s.setRightDrawerView);
+  const inspectorWide = useCockpitStore((s) => s.inspectorWide);
+  const toggleInspectorWide = useCockpitStore((s) => s.toggleInspectorWide);
+  const drawerWidths = useCockpitStore((s) => s.drawerWidths);
+  const setDrawerWidth = useCockpitStore((s) => s.setDrawerWidth);
 
   const queue = useQueueStore((s) => queueOf(s, sessionId));
   const session = sessions.data?.find((s) => s.session_id === sessionId);
@@ -349,6 +362,78 @@ export function ConversationPage() {
             )}
           </nav>
           <div className="ml-auto flex shrink-0 items-center gap-2">
+            {/* 目标主机 Fleet 环境切换器 (Local / Staging / Prod) */}
+            <SreFleetSwitcher />
+
+            {/* 存储压力槽条 (/ 22% | /boot 47%) */}
+            <div className="hidden 2xl:flex items-center">
+              <SreStorageGaugeStrip />
+            </div>
+
+            {/* 端口暴露面雷达按钮 (母题 A: 极坐标尺规旋切，大盘化抽屉联动) */}
+            <Tip label="端口暴露面极坐标雷达大盘 (0.0.0.0 vs 127.0.0.1)">
+              <IconButton
+                label="端口暴露面雷达"
+                active={inspectorShown && rightDrawerView === 'network'}
+                onClick={() => {
+                  if (inspectorShown && rightDrawerView === 'network') {
+                    toggleInspector();
+                  } else {
+                    if (!inspectorShown) toggleInspector();
+                    setRightDrawerView('network');
+                  }
+                }}
+              >
+                <Radio size={16} />
+              </IconButton>
+            </Tip>
+
+            {/* 交付产物阅读抽屉按钮 (母题 D: 折叠撕边展开) */}
+            <Tip label="交付产物阅读抽屉 (SOP 固化)">
+              <IconButton
+                label="交付产物阅读器"
+                active={inspectorShown && rightDrawerView === 'artifacts'}
+                onClick={() => {
+                  if (inspectorShown && rightDrawerView === 'artifacts') {
+                    toggleInspector();
+                  } else {
+                    openArtifact('系统全要素巡检与调优诊断大盘.md', '');
+                    if (!inspectorShown) toggleInspector();
+                    setRightDrawerView('artifacts');
+                  }
+                }}
+              >
+                <BookOpen size={16} />
+              </IconButton>
+            </Tip>
+
+            {/* Live PTY 终端穿透与人类协同接管台 (快捷键 Ctrl+~) */}
+            <Tip label="实时 PTY 终端与人机接管 (Ctrl+~)">
+              <IconButton
+                label="实时 PTY 终端"
+                active={terminalOpen}
+                onClick={() => toggleTerminal()}
+              >
+                <SquareTerminal size={16} />
+              </IconButton>
+            </Tip>
+
+            {/* 常驻就绪墨印与主机遥测胶囊 */}
+            <div
+              className="hidden xl:flex items-center gap-2 rounded-md border border-ink/[0.08] bg-ink/[0.02] px-2.5 py-1 font-mono text-[10.5px] text-mute dark:border-white/[0.08] dark:bg-white/[0.03]"
+              aria-label="主机探针遥测状态"
+            >
+              <span className="flex items-center gap-1.5 font-semibold text-ok">
+                <span className="h-1.5 w-1.5 rounded-full bg-ok animate-pulse" />
+                SRE HARNESS ONLINE
+              </span>
+              <span className="text-ink/15 dark:text-white/20">|</span>
+              <span>LOAD: 0.42</span>
+              <span className="text-ink/15 dark:text-white/20">|</span>
+              <span>MEM: 18.2G/32G</span>
+              <span className="text-ink/15 dark:text-white/20">|</span>
+              <span>DOCKER: 8 RUNNING</span>
+            </div>
             {run && meta && (
               <MinimalStatusMark status={run.status} meta={meta} className="px-1" />
             )}
@@ -424,7 +509,7 @@ export function ConversationPage() {
               ))}
               {!allTasks.length && !run && tasks.isSuccess && (
                 <div className="flex flex-col items-center gap-6 py-12 text-center">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-accent/10 text-accent">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-ink/[0.1] bg-ink/[0.03] text-ink backdrop-blur dark:border-white/[0.12] dark:bg-white/[0.04]">
                     <StarLogo size={24} />
                   </div>
                   <div>
@@ -483,6 +568,8 @@ export function ConversationPage() {
           workspaceId={workspaceId || session?.workspace_id || ''}
           busy={busy}
           contextPercent={percent}
+          contextTokens={snapshot.data?.total_tokens ?? null}
+          contextLimit={limit ?? null}
           onCancel={() => void cancel()}
           onSubmit={async (text: string, level: PermissionLevel, confirmed: boolean) => {
             const task = await submit(sessionId, text, level, confirmed);
@@ -498,22 +585,30 @@ export function ConversationPage() {
               <motion.div
                 key="scrim"
                 aria-hidden
-                className="fixed inset-0 z-drawer bg-canvas/50 backdrop-blur-sm"
+                className="fixed inset-0 z-drawer bg-black/10 backdrop-blur-[2px]"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
+                transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
                 onClick={toggleInspector}
               />
               <motion.aside
                 key="drawer"
                 aria-label="检视器"
-                className="fixed inset-y-0 right-0 z-modal w-[min(352px,92vw)] border-l border-ink/[0.07] bg-canvas/95 shadow-float backdrop-blur-2xl dark:border-white/[0.08]"
-                initial={{ x: 360 }}
+                className={cn(
+                  'fixed inset-y-0 right-0 z-modal border-l border-[#2B2A27]/20 bg-canvas/98 shadow-float backdrop-blur-2xl dark:border-white/[0.12]',
+                  rightDrawerView === 'artifacts'
+                    ? 'w-[min(880px,96vw)]'
+                    : rightDrawerView === 'network'
+                      ? 'w-[min(700px,96vw)]'
+                      : 'w-[min(420px,92vw)]',
+                )}
+                initial={{ x: '100%' }}
                 animate={{ x: 0 }}
-                exit={{ x: 360 }}
-                transition={SPRING}
+                exit={{ x: '100%' }}
+                transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
               >
-                <Inspector sessionId={sessionId} />
+                <Inspector sessionId={sessionId} onClose={toggleInspector} />
               </motion.aside>
             </>
           )}
@@ -522,12 +617,89 @@ export function ConversationPage() {
         <motion.aside
           aria-label="检视器"
           initial={false}
-          animate={{ width: inspectorOpen ? 340 : 0, opacity: inspectorOpen ? 1 : 0 }}
-          transition={SPRING}
-          className="relative z-sticky shrink-0 overflow-hidden border-l border-ink/[0.05] dark:border-white/[0.05]"
+          animate={{
+            width: !inspectorOpen
+              ? 0
+              : inspectorWide
+                ? rightDrawerView === 'artifacts'
+                  ? typeof window !== 'undefined'
+                    ? Math.min(1080, Math.max(760, window.innerWidth - 280))
+                    : 1040
+                  : rightDrawerView === 'network'
+                    ? typeof window !== 'undefined'
+                      ? Math.min(840, Math.max(640, window.innerWidth - 280))
+                      : 800
+                    : 520
+                : (drawerWidths[rightDrawerView] ??
+                  (rightDrawerView === 'artifacts' ? 760 : rightDrawerView === 'network' ? 640 : 380)),
+            opacity: inspectorOpen ? 1 : 0,
+          }}
+          transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+          className="relative z-sticky shrink-0 overflow-hidden border-l border-ink/[0.06] dark:border-white/[0.06]"
         >
-          <div className="h-full w-[340px]">
-            {inspectorOpen && <Inspector sessionId={sessionId} />}
+          {/* 左侧可拖拽调宽手柄 (SRE 工业刻度阻尼感，双击切换宽屏) */}
+          {inspectorOpen && (
+            <div
+              onPointerDown={(e) => {
+                e.preventDefault();
+                const startX = e.clientX;
+                const currentW = !inspectorWide
+                  ? (drawerWidths[rightDrawerView] ??
+                    (rightDrawerView === 'artifacts' ? 760 : rightDrawerView === 'network' ? 640 : 380))
+                  : rightDrawerView === 'artifacts'
+                    ? 1040
+                    : rightDrawerView === 'network'
+                      ? 800
+                      : 520;
+
+                const handlePointerMove = (ev: PointerEvent) => {
+                  const deltaX = startX - ev.clientX;
+                  const minW =
+                    rightDrawerView === 'tasks' ? 320 : rightDrawerView === 'network' ? 440 : 520;
+                  const maxW =
+                    typeof window !== 'undefined'
+                      ? Math.max(minW, window.innerWidth - 260)
+                      : 1200;
+                  const newW = Math.max(minW, Math.min(maxW, Math.round(currentW + deltaX)));
+                  setDrawerWidth(rightDrawerView, newW);
+                };
+
+                const handlePointerUp = () => {
+                  window.removeEventListener('pointermove', handlePointerMove);
+                  window.removeEventListener('pointerup', handlePointerUp);
+                };
+
+                window.addEventListener('pointermove', handlePointerMove);
+                window.addEventListener('pointerup', handlePointerUp);
+              }}
+              onDoubleClick={toggleInspectorWide}
+              title="按住拖拽调节宽度，双击切换宽屏"
+              className="group absolute inset-y-0 left-0 z-20 w-1.5 cursor-col-resize select-none hover:bg-[#2B2A27]/30 active:bg-[#2B2A27] dark:hover:bg-white/30 dark:active:bg-white transition-colors"
+            >
+              <div className="absolute inset-y-0 left-0 w-px bg-transparent group-hover:bg-[#2B2A27] dark:group-hover:bg-white" />
+            </div>
+          )}
+
+          <div
+            className="h-full"
+            style={{
+              width: !inspectorOpen
+                ? 0
+                : inspectorWide
+                  ? rightDrawerView === 'artifacts'
+                    ? typeof window !== 'undefined'
+                      ? Math.min(1080, Math.max(760, window.innerWidth - 280))
+                      : 1040
+                    : rightDrawerView === 'network'
+                      ? typeof window !== 'undefined'
+                        ? Math.min(840, Math.max(640, window.innerWidth - 280))
+                        : 800
+                      : 520
+                  : (drawerWidths[rightDrawerView] ??
+                    (rightDrawerView === 'artifacts' ? 760 : rightDrawerView === 'network' ? 640 : 380)),
+            }}
+          >
+            <Inspector sessionId={sessionId} onClose={toggleInspector} />
           </div>
         </motion.aside>
       )}

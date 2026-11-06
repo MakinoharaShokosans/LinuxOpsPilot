@@ -1,6 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
 import {
-  Check,
   Clock,
   Cpu,
   Download,
@@ -11,6 +10,7 @@ import {
   Square,
   Wrench,
 } from 'lucide-react';
+import { motion } from 'motion/react';
 import { useState } from 'react';
 import { api } from '../../api/endpoints';
 import { CopyButton } from '../../components/ui/CopyButton';
@@ -33,27 +33,56 @@ function Plan({ plan }: { plan: PlanItem[] }) {
   };
 
   return (
-    <ol className="space-y-1">
+    <ol className="relative space-y-1 pl-1">
+      {/* 纵向工程标尺引线 */}
+      <div className="absolute left-[7px] top-2 bottom-2 w-[1px] bg-ink/[0.08] dark:bg-white/[0.08]" />
       {plan.map((p, idx) => (
         <li
           key={p.id}
           onClick={() => scrollToTurn(idx)}
           className={cn(
-            'group flex cursor-pointer items-start gap-2 rounded-lg px-1.5 py-1 text-[13px] leading-snug transition-colors hover:bg-ink/[0.04] dark:hover:bg-white/[0.04]',
-            p.status === 'completed' && 'text-mute line-through decoration-mute/40',
-            p.status === 'pending' && 'text-mute',
+            'group relative flex cursor-pointer items-start gap-2 rounded-lg px-1.5 py-1 text-[13px] leading-snug transition-colors hover:bg-ink/[0.04] dark:hover:bg-white/[0.04]',
+            p.status === 'completed' && 'text-mute',
+            p.status === 'pending' && 'text-mute/80',
           )}
           title="点击跳转至对应回合"
         >
           {p.status === 'completed' ? (
-            <Check size={13} strokeWidth={2.5} className="mt-1 shrink-0 text-ok" />
+            <svg width="14" height="14" viewBox="0 0 14 14" className="relative z-10 mt-1 shrink-0 bg-card">
+              <motion.path
+                d="M2.5 7.5L5.5 10.5L11.5 3.5"
+                fill="none"
+                stroke="#2E7D32"
+                strokeWidth="2.2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                initial={{ pathLength: 0 }}
+                animate={{ pathLength: 1 }}
+                transition={{ duration: 0.38, ease: [0.16, 1, 0.3, 1] }}
+              />
+            </svg>
           ) : p.status === 'in_progress' ? (
-            <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-accent animate-pulse" />
+            <span className="relative z-10 mt-1 flex h-3.5 w-3.5 shrink-0 items-center justify-center bg-card">
+              <span className="absolute h-2.5 w-2.5 rounded-full border border-ink/40 dark:border-white/40" />
+              <span className="h-1 w-1 rounded-full bg-ink dark:bg-white animate-ping" />
+            </span>
           ) : (
-            <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-mute/30" />
+            <span className="relative z-10 mt-1.5 flex h-3 w-3 shrink-0 items-center justify-center bg-card">
+              <span className="h-1.5 w-1.5 rounded-full bg-ink/20 dark:bg-white/25" />
+            </span>
           )}
-          <span className="min-w-0 break-words group-hover:text-ink dark:group-hover:text-white">
+          <span className="relative min-w-0 break-words group-hover:text-ink dark:group-hover:text-white">
             {p.title}
+            {p.status === 'completed' && (
+              <motion.span
+                aria-hidden
+                className="pointer-events-none absolute left-0 top-[55%] h-[1px] w-full bg-[#1A1A1A]/40 dark:bg-white/40"
+                initial={{ scaleX: 0 }}
+                animate={{ scaleX: 1 }}
+                style={{ transformOrigin: 'left center' }}
+                transition={{ duration: 0.32, ease: [0.16, 1, 0.3, 1], delay: 0.08 }}
+              />
+            )}
           </span>
         </li>
       ))}

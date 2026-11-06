@@ -67,7 +67,7 @@ export function Home() {
         </header>
       )}
       <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col items-center justify-center gap-6 px-4 py-8 text-center">
-        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-accent/10 text-accent">
+        <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-ink/[0.1] bg-ink/[0.03] text-ink backdrop-blur dark:border-white/[0.12] dark:bg-white/[0.04]">
           <StarLogo size={32} />
         </div>
         <div>
@@ -82,7 +82,7 @@ export function Home() {
         <button
           onClick={() => create.mutate()}
           disabled={create.isPending}
-          className="flex items-center gap-2 rounded-xl bg-accent px-4 py-2 text-sm font-medium text-white transition hover:bg-accent/90 disabled:opacity-50"
+          className="flex items-center gap-2 rounded-lg border border-[#2B2A27]/25 bg-canvas px-4 py-2 text-sm font-medium text-ink shadow-sm transition hover:border-[#2B2A27] hover:bg-subtle active:scale-[0.98] disabled:opacity-50 dark:border-white/20 dark:bg-canvas dark:hover:border-white/50 dark:hover:bg-white/[0.04]"
         >
           <Plus size={16} /> 新建空白会话
         </button>

@@ -1,5 +1,5 @@
 /** 一次任务的运行视图：思考、汇报、工具调用、审批、交付，按事件顺序排列。 */
-import { Download, GitFork, Play } from 'lucide-react';
+import { BookOpen, Download, GitFork, Play } from 'lucide-react';
 import { useMemo } from 'react';
 import { api } from '../../api/endpoints';
 import { SafeMarkdown } from '../../components/common/SafeMarkdown';
@@ -7,9 +7,10 @@ import { HitlApprovalCard } from '../../components/domain/HitlApprovalCard';
 import { CopyButton } from '../../components/ui/CopyButton';
 import { IconButton } from '../../components/ui/primitives';
 import { useAppStore } from '../../stores/useAppStore';
+import { useCockpitStore } from '../../stores/useCockpitStore';
+import { useUiStore } from '../../stores/useUiStore';
 import type { RunState, TimelineItem } from '../../stores/taskReducer';
 import { TERMINAL_STATUSES } from '../../types/api';
-import { cn } from '../../utils/text';
 import { formatDuration } from '../../utils/time';
 import { useNow } from '../../utils/useNow';
 import { AgentGroup } from './blocks/AgentGroup';
@@ -50,6 +51,7 @@ export function RunView({
   const approve = useAppStore((s) => s.approve);
   const reject = useAppStore((s) => s.reject);
   const resume = useAppStore((s) => s.resume);
+  const openArtifact = useCockpitStore((s) => s.openArtifact);
   const nodes = useMemo(() => nodesOf(run.items), [run.items]);
   const terminal = TERMINAL_STATUSES.includes(run.status);
   const working = !terminal && run.status !== 'waiting_for_approval';
@@ -59,7 +61,7 @@ export function RunView({
   const now = useNow(working && !streaming);
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-1">
       {nodes.map((n) => {
         if ('agents' in n) return <AgentGroup key={n.key} items={n.agents} />;
         const item = n.item;
@@ -77,16 +79,29 @@ export function RunView({
             break;
           case 'decision':
             content = (
-              <p className={cn('text-[12.5px]', item.approved ? 'text-ok' : 'text-warn')}>
-                {item.approved ? '已批准' : `已拒绝：${item.text}`}
-              </p>
+              <div className="relative pl-3 py-0.5 border-l border-line-subtle dark:border-[#27272A] font-mono text-[11.5px]">
+                <span className="text-ink-ghost select-none mr-1.5">⎿</span>
+                <span className={item.approved ? 'text-ok font-semibold' : 'text-warn font-semibold'}>
+                  {item.approved ? '已批准' : `已拒绝：${item.text}`}
+                </span>
+              </div>
             );
             break;
           case 'guard':
-            content = <p className="text-[12.5px] text-warn">{item.text}</p>;
+            content = (
+              <div className="relative pl-3 py-0.5 border-l border-line-subtle dark:border-[#27272A] font-mono text-[11.5px] text-warn">
+                <span className="text-ink-ghost select-none mr-1.5">⎿</span>
+                <span>{item.text}</span>
+              </div>
+            );
             break;
           case 'unknown':
-            content = <p className="font-mono text-2xs text-mute/60">{item.name}</p>;
+            content = (
+              <div className="relative pl-3 py-0.5 border-l border-line-subtle dark:border-[#27272A] font-mono text-[10px] text-ink-ghost">
+                <span className="text-ink-ghost select-none mr-1.5">⎿</span>
+                <span>{item.name}</span>
+              </div>
+            );
             break;
           default:
             content = null;
@@ -134,7 +149,22 @@ export function RunView({
       {run.error && <p className="text-[13px] text-bad">{run.error}</p>}
 
       {terminal && run.delivery && (
-        <div className="py-1">
+        <div className="py-2 space-y-2">
+          <div className="flex items-center justify-between border-b border-[#2B2A27]/10 pb-1.5 dark:border-white/10">
+            <span className="font-mono text-[11px] font-semibold text-ink dark:text-zinc-200">
+              [ SRE 任务交付与巡检大盘 ]
+            </span>
+            <button
+              onClick={() => {
+                openArtifact('系统全要素巡检与调优诊断大盘.md', run.delivery || '');
+                useUiStore.getState().setInspectorOpen(true);
+              }}
+              className="inline-flex items-center gap-1.5 rounded border border-[#2B2A27]/20 bg-canvas px-2.5 py-1 font-mono text-[11px] font-medium text-ink transition hover:border-[#2B2A27] hover:bg-ink/[0.04] active:scale-95 dark:border-white/20 dark:text-zinc-200 dark:hover:border-white"
+            >
+              <BookOpen size={12} />
+              <span>展开 480px 产物抽屉 (TOC / SOP)</span>
+            </button>
+          </div>
           <SafeMarkdown text={run.delivery} />
         </div>
       )}

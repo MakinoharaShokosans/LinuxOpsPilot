@@ -165,7 +165,15 @@ export function Reveal({ open, children }: { open: boolean; children: ReactNode 
   );
 }
 
-export function Chevron({ open, size = 14 }: { open: boolean; size?: number }) {
+export function Chevron({
+  open,
+  size = 14,
+  className,
+}: {
+  open: boolean;
+  size?: number;
+  className?: string;
+}) {
   return (
     <ChevronRight
       size={size}
@@ -173,6 +181,7 @@ export function Chevron({ open, size = 14 }: { open: boolean; size?: number }) {
       className={cn(
         'shrink-0 text-mute transition-transform duration-200 ease-out',
         open && 'rotate-90',
+        className,
       )}
     />
   );

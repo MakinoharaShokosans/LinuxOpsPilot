@@ -4,10 +4,14 @@ import { AnimatePresence, MotionConfig, motion } from 'motion/react';
 import { Copy, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useThemeEffect } from '../components/layout/ThemeToggle';
+import { SreBootSplash } from '../components/common/SreBootSplash';
+import { SreTerminalDrawer } from '../components/domain/SreTerminalDrawer';
+import { SreProductionGuardOverlay } from '../components/domain/SreProductionGuard';
 import { IconButton, SPRING } from '../components/ui/primitives';
 import { Sidebar } from '../features/sidebar/Sidebar';
 import { useAppStore } from '../stores/useAppStore';
 import { useUiStore } from '../stores/useUiStore';
+import { useCockpitStore } from '../stores/useCockpitStore';
 import { TERMINAL_STATUSES } from '../types/api';
 import { cn } from '../utils/text';
 
@@ -38,6 +42,9 @@ function useShortcuts(): void {
       } else if (key === 'j') {
         e.preventDefault();
         useUiStore.getState().toggleInspector();
+      } else if (key === '`' || key === '~') {
+        e.preventDefault();
+        useCockpitStore.getState().toggleTerminal();
       }
     };
     window.addEventListener('keydown', onKey);
@@ -150,6 +157,9 @@ export function Shell() {
           <Outlet />
         </main>
         <NoticeBar />
+        <SreTerminalDrawer />
+        <SreProductionGuardOverlay />
+        <SreBootSplash />
       </div>
     </MotionConfig>
   );

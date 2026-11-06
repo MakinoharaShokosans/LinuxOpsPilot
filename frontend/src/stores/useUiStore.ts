@@ -37,6 +37,7 @@ interface UiState extends Prefs {
   toggleSidebar: () => void;
   setSidebarCollapsed: (value: boolean) => void;
   toggleInspector: () => void;
+  setInspectorOpen: (open: boolean) => void;
   toggleCard: (id: string) => void;
   openCard: (id: string) => void;
   setTheme: (theme: ThemePref) => void;
@@ -149,6 +150,8 @@ export const useUiStore = create<UiState>((set) => ({
   setSidebarCollapsed: (value) => set({ sidebarCollapsed: value }),
   toggleInspector: () =>
     set((s) => (s.narrow ? { drawerOpen: !s.drawerOpen } : { inspectorOpen: !s.inspectorOpen })),
+  setInspectorOpen: (open) =>
+    set((s) => (s.narrow ? { drawerOpen: open } : { inspectorOpen: open })),
   toggleCard: (id) =>
     set((s) => ({
       collapsedCards: s.collapsedCards.includes(id)
