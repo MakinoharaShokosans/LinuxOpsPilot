@@ -404,11 +404,17 @@ export function Sidebar({ collapsedRail = false }: { collapsedRail?: boolean }) 
         )}
       >
         <ThemeToggle />
-        <Link to="/settings" onClick={() => phone && setNavOpen(false)}>
-          <IconButton label="设置" side={collapsedRail ? 'right' : 'top'} tabIndex={-1}>
-            <Settings size={16} />
-          </IconButton>
-        </Link>
+        <IconButton
+          label="系统配置 (Ctrl+,)"
+          side={collapsedRail ? 'right' : 'top'}
+          tabIndex={-1}
+          onClick={() => {
+            if (phone) setNavOpen(false);
+            useUiStore.getState().setSettingsOpen(true);
+          }}
+        >
+          <Settings size={16} />
+        </IconButton>
       </div>
 
       {deletingSession && (

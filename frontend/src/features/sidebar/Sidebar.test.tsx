@@ -111,4 +111,23 @@ describe('Sidebar Attention Section Deduplication', () => {
     const normalRows = screen.getAllByText('Linux深度巡检');
     expect(normalRows).toHaveLength(1);
   });
+
+  it('triggers in-place settings modal without URL navigation when settings button is clicked', async () => {
+    const { useUiStore } = await import('../../stores/useUiStore');
+    useUiStore.setState({ settingsOpen: false });
+
+    render(
+      <QueryClientProvider client={queryClient}>
+        <Sidebar collapsedRail={false} />
+      </QueryClientProvider>,
+    );
+
+    const settingsBtn = screen.getByRole('button', { name: '系统配置 (Ctrl+,)' });
+    expect(settingsBtn).toBeInTheDocument();
+    // It should not be wrapped inside an <a> tag linking to /settings
+    expect(settingsBtn.closest('a')).toBeNull();
+
+    settingsBtn.click();
+    expect(useUiStore.getState().settingsOpen).toBe(true);
+  });
 });

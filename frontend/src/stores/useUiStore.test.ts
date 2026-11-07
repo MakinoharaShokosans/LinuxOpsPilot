@@ -36,4 +36,20 @@ describe('useUiStore persistence', () => {
       JSON.parse(window.localStorage.getItem('baseagent.ui.v2') ?? '{}').readSessions['sess-1'],
     ).toBe(12345);
   });
+
+  it('manages settings modal visibility and sections in memory', async () => {
+    const store = await freshStore();
+    expect(store.getState().settingsOpen).toBe(false);
+    expect(store.getState().settingsSection).toBe('general');
+
+    store.getState().setSettingsOpen(true, 'skills');
+    expect(store.getState().settingsOpen).toBe(true);
+    expect(store.getState().settingsSection).toBe('skills');
+
+    store.getState().setSettingsSection('mcp');
+    expect(store.getState().settingsSection).toBe('mcp');
+
+    store.getState().toggleSettings();
+    expect(store.getState().settingsOpen).toBe(false);
+  });
 });

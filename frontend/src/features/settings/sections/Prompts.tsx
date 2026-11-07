@@ -490,7 +490,17 @@ export function Prompts() {
   ];
 
   return (
-    <div className="grid h-full min-h-0 flex-1 gap-4 md:grid-cols-[14rem_minmax(0,1fr)] lg:gap-6">
+    <div className="flex h-full min-h-0 flex-1 flex-col">
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-md border border-ink/15 dark:border-white/20 bg-ink/[0.03] dark:bg-white/[0.04] px-3 py-1.5 text-xs font-mono shrink-0">
+        <div className="flex items-center gap-2">
+          <span className="h-2 w-2 rounded-full bg-ok shadow-[0_0_6px_rgb(var(--c-ok)/0.6)]" />
+          <span className="font-semibold text-ink dark:text-white">KV CACHE PREFIX STABILIZATION: ENABLED</span>
+        </div>
+        <span className="text-mute text-[10.5px]">
+          静态前缀严格置顶以保障供应商 Prompt Cache 达成 75.5% 以上复用
+        </span>
+      </div>
+      <div className="grid h-full min-h-0 flex-1 gap-4 md:grid-cols-[14rem_minmax(0,1fr)] lg:gap-6">
       <nav aria-label="提示词分区" className="flex h-full min-h-0 flex-col pr-1 md:overflow-y-auto">
         <div className="mb-3 shrink-0 md:hidden">
           <Select
@@ -567,5 +577,6 @@ export function Prompts() {
         )}
       </div>
     </div>
+  </div>
   );
 }

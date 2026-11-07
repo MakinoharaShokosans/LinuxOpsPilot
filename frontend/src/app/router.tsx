@@ -4,11 +4,13 @@ import {
   createRootRoute,
   createRoute,
   createRouter,
+  useParams,
   type RouterHistory,
 } from '@tanstack/react-router';
+import { useEffect } from 'react';
 import { ConversationPage } from '../features/conversation/ConversationPage';
-import { SettingsPage } from '../features/settings/SettingsPage';
 import { WorkspacePage } from '../features/workspace/WorkspacePage';
+import { useUiStore, type SettingsSection } from '../stores/useUiStore';
 import { Home } from './Home';
 import { Shell } from './Shell';
 
@@ -43,6 +45,14 @@ const session = createRoute({
     task: typeof search['task'] === 'string' ? search['task'] : undefined,
   }),
 });
+
+function SettingsRedirect({ section }: { section?: string }) {
+  useEffect(() => {
+    useUiStore.getState().setSettingsOpen(true, (section as SettingsSection) || 'general');
+  }, [section]);
+  return <Navigate to="/" replace />;
+}
+
 const settings = createRoute({
   getParentRoute: () => root,
   path: '/settings',
@@ -51,12 +61,15 @@ const settings = createRoute({
 const settingsIndex = createRoute({
   getParentRoute: () => settings,
   path: '/',
-  component: SettingsPage,
+  component: () => <SettingsRedirect />,
 });
 const settingsSection = createRoute({
   getParentRoute: () => settings,
   path: '$section',
-  component: SettingsPage,
+  component: function SettingsSectionComponent() {
+    const { section } = useParams({ strict: false }) as { section?: string };
+    return <SettingsRedirect section={section} />;
+  },
 });
 const fallback = createRoute({
   getParentRoute: () => root,

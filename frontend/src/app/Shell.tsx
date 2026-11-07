@@ -1,5 +1,5 @@
 /** 外壳：环境层 + 侧栏（桌面固定 / 手机抽屉）+ 路由出口 + 全局提示。 */
-import { Outlet, useRouterState } from '@tanstack/react-router';
+import { Outlet } from '@tanstack/react-router';
 import { AnimatePresence, MotionConfig, motion } from 'motion/react';
 import { Copy, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
@@ -7,6 +7,7 @@ import { useThemeEffect } from '../components/layout/ThemeToggle';
 import { SreBootSplash } from '../components/common/SreBootSplash';
 import { SreTerminalDrawer } from '../components/domain/SreTerminalDrawer';
 import { SreProductionGuardOverlay } from '../components/domain/SreProductionGuard';
+import { SreSettingsModal } from '../features/settings/SreSettingsModal';
 import { IconButton, SPRING } from '../components/ui/primitives';
 import { Sidebar } from '../features/sidebar/Sidebar';
 import { useAppStore } from '../stores/useAppStore';
@@ -45,6 +46,9 @@ function useShortcuts(): void {
       } else if (key === '`' || key === '~') {
         e.preventDefault();
         useCockpitStore.getState().toggleTerminal();
+      } else if (key === ',' || key === '，') {
+        e.preventDefault();
+        useUiStore.getState().toggleSettings();
       }
     };
     window.addEventListener('keydown', onKey);
@@ -113,7 +117,6 @@ export function Shell() {
   const setPhone = useUiStore((s) => s.setPhone);
   const phone = !useMinWidth(768);
   const wide = useMinWidth(1100);
-  const inSettings = useRouterState({ select: (s) => s.location.pathname.startsWith('/settings') });
   useEffect(() => setPhone(phone), [phone, setPhone]);
   useEffect(() => setNarrow(!wide), [wide, setNarrow]);
 
@@ -149,7 +152,7 @@ export function Shell() {
               </>
             )}
           </AnimatePresence>
-        ) : inSettings ? null : (
+        ) : (
           <Sidebar collapsedRail={collapsed} />
         )}
 
@@ -160,6 +163,7 @@ export function Shell() {
         <SreTerminalDrawer />
         <SreProductionGuardOverlay />
         <SreBootSplash />
+        <SreSettingsModal />
       </div>
     </MotionConfig>
   );

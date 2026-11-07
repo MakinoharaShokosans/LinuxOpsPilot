@@ -15,10 +15,10 @@ export function Row({
   className?: string;
 }) {
   return (
-    <div className={cn('flex items-center gap-3 py-3', className)}>
+    <div className={cn('flex items-center gap-3 py-2.5', className)}>
       <div className="min-w-0 flex-1">
-        <div className="text-[14px]">{title}</div>
-        {note && <div className="mt-0.5 text-[12.5px] leading-snug text-mute">{note}</div>}
+        <div className="text-[13px] font-medium text-ink dark:text-white">{title}</div>
+        {note && <div className="mt-0.5 text-[11.5px] leading-snug text-mute">{note}</div>}
       </div>
       <div className="flex shrink-0 items-center gap-2">{children}</div>
     </div>
@@ -35,24 +35,26 @@ export function Group({
   aside?: ReactNode;
 }) {
   return (
-    <section className="mb-5">
+    <section className="mb-4">
       {(title || aside) && (
-        <div className="mb-1 flex items-center px-1">
-          <h2 className="eyebrow">{title}</h2>
+        <div className="mb-1.5 flex items-center px-1">
+          <h2 className="font-mono text-[11px] font-semibold uppercase tracking-wider text-mute">
+            {title}
+          </h2>
           <span className="ml-auto">{aside}</span>
         </div>
       )}
-      <div className="divide-y divide-ink/[0.06] rounded-2xl bg-card/80 px-4 shadow-card dark:divide-white/[0.07]">
+      <div className="divide-y divide-ink/[0.08] rounded-lg border border-ink/[0.12] bg-white dark:divide-white/[0.08] dark:border-white/[0.12] dark:bg-[#181818] px-3.5 shadow-sm">
         {children}
       </div>
     </section>
   );
 }
 
-/** 作用域徽标 */
+/** 作用域微标 */
 export function Scope({ children }: { children: ReactNode }) {
   return (
-    <span className="rounded-md bg-ink/[0.06] px-1.5 py-px text-[10.5px] font-medium text-mute">
+    <span className="inline-flex items-center rounded border border-ink/15 dark:border-white/20 bg-ink/[0.04] dark:bg-white/[0.06] px-1.5 py-px font-mono text-[10px] font-medium text-mute">
       {children}
     </span>
   );

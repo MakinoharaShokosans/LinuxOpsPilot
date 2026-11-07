@@ -3,6 +3,14 @@ import { create } from 'zustand';
 
 export type ThemePref = 'system' | 'light' | 'dark';
 export type ThinkingPref = 'expanded' | 'collapsed' | 'hidden';
+export type SettingsSection =
+  | 'general'
+  | 'models'
+  | 'skills'
+  | 'mcp'
+  | 'tools'
+  | 'prompts'
+  | 'diagnostics';
 
 interface Prefs {
   sidebarCollapsed: boolean;
@@ -20,6 +28,8 @@ interface Prefs {
   readSessions: Record<string, number>;
   /** 首次引入已读机制的时间戳，旧会话历史任务默认视作已读，避免历史会话满屏绿点 */
   initialReadCutoff: number;
+  /** 遥测脉冲音效与 BUS_LOAD 动效 */
+  telemetryAudio: boolean;
 }
 
 interface UiState extends Prefs {
@@ -29,6 +39,9 @@ interface UiState extends Prefs {
   /** 手机宽度：侧栏是覆盖式抽屉 */
   phone: boolean;
   navOpen: boolean;
+  /** Layer 2 原地设置视窗开合状态 (SreSettingsModal) */
+  settingsOpen: boolean;
+  settingsSection: SettingsSection;
   setNarrow: (value: boolean) => void;
   setPhone: (value: boolean) => void;
   setNavOpen: (value: boolean) => void;
@@ -45,6 +58,11 @@ interface UiState extends Prefs {
   toggleTheme: () => void;
   /** 标记会话已读（滑到最底部时触发，消除绿点） */
   markSessionRead: (sessionId: string, timestamp?: number) => void;
+  /** 设置视窗操作 */
+  setSettingsOpen: (open: boolean, section?: SettingsSection) => void;
+  setSettingsSection: (section: SettingsSection) => void;
+  toggleSettings: (section?: SettingsSection) => void;
+  setTelemetryAudio: (enabled: boolean) => void;
 }
 
 const KEY = 'baseagent.ui.v2';
@@ -58,6 +76,7 @@ const DEFAULTS: Prefs = {
   workspacesTouched: false,
   readSessions: {},
   initialReadCutoff: Math.floor(Date.now() / 1000),
+  telemetryAudio: true,
 };
 
 function load(): Prefs {
@@ -70,6 +89,7 @@ function load(): Prefs {
       ...parsed,
       readSessions: parsed.readSessions ?? {},
       initialReadCutoff: parsed.initialReadCutoff ?? Math.floor(Date.now() / 1000),
+      telemetryAudio: parsed.telemetryAudio ?? true,
     };
   } catch {
     return DEFAULTS;
@@ -88,6 +108,7 @@ function save(state: Prefs): void {
       workspacesTouched,
       readSessions,
       initialReadCutoff,
+      telemetryAudio,
     } = state;
     window.localStorage.setItem(
       KEY,
@@ -101,6 +122,7 @@ function save(state: Prefs): void {
         workspacesTouched,
         readSessions,
         initialReadCutoff,
+        telemetryAudio,
       }),
     );
   } catch {
@@ -161,6 +183,20 @@ export const useUiStore = create<UiState>((set) => ({
   openCard: (id) => set((s) => ({ collapsedCards: s.collapsedCards.filter((c) => c !== id) })),
   setTheme: (theme) => set({ theme }),
   toggleTheme: () => set((s) => ({ theme: resolvedDark(s.theme) ? 'light' : 'dark' })),
+  settingsOpen: false,
+  settingsSection: 'general',
+  setSettingsOpen: (open, section) =>
+    set((s) => ({
+      settingsOpen: open,
+      settingsSection: section ?? s.settingsSection,
+    })),
+  setSettingsSection: (settingsSection) => set({ settingsSection }),
+  toggleSettings: (section) =>
+    set((s) => ({
+      settingsOpen: !s.settingsOpen,
+      settingsSection: section ?? s.settingsSection,
+    })),
+  setTelemetryAudio: (telemetryAudio) => set({ telemetryAudio }),
   markSessionRead: (sessionId, timestamp = Date.now() / 1000) =>
     set((s) => {
       const prev = s.readSessions[sessionId] ?? 0;
