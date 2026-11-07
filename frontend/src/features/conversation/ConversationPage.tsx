@@ -27,7 +27,7 @@ import { useContextSnapshot, useSessionSettings } from '../../api/useSettings';
 import { SafeMarkdown } from '../../components/common/SafeMarkdown';
 import { StarLogo } from '../../components/common/BrandLogo';
 import { McpStatus } from '../../components/domain/McpStatus';
-import { SreFleetSwitcher } from '../../components/domain/SreProductionGuard';
+import { SrePermissionGuard } from '../../components/domain/SreProductionGuard';
 import { SreStorageGaugeStrip } from '../../components/domain/SreNetworkStorageDial';
 import { InlineEdit } from '../../components/ui/InlineEdit';
 import { IconButton } from '../../components/ui/primitives';
@@ -374,8 +374,8 @@ export function ConversationPage() {
             )}
           </nav>
           <div className="ml-auto flex shrink-0 items-center gap-2">
-            {/* 目标主机 Fleet 环境切换器 (Local / Staging / Prod) */}
-            <SreFleetSwitcher />
+            {/* 全局 SRE 权限安全基线与全屏护栏 (只读取证 / 工作区读写 / 高危系统提权) */}
+            <SrePermissionGuard />
 
             {/* 存储压力槽条 (/ 22% | /boot 47%) */}
             <div className="hidden 2xl:flex items-center">

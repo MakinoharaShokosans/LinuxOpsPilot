@@ -4,15 +4,13 @@
  */
 import { useQuery } from '@tanstack/react-query';
 import {
+  AlertOctagon,
   ArrowUp,
   ChevronDown,
   ChevronUp,
   ListPlus,
   Pause,
   Play,
-  Shield,
-  ShieldAlert,
-  ShieldCheck,
   Square,
   Undo2,
 } from 'lucide-react';
@@ -26,22 +24,6 @@ import { useUiStore } from '../../stores/useUiStore';
 import { useCockpitStore } from '../../stores/useCockpitStore';
 import type { PermissionLevel } from '../../types/api';
 import { cn, formatTokens } from '../../utils/text';
-
-const LEVELS: { value: PermissionLevel; label: string; hint: string; icon: typeof Shield }[] = [
-  { value: 'read_only', label: '只读', hint: '只能查看，不会修改任何文件', icon: Shield },
-  {
-    value: 'workspace_write',
-    label: '工作区读写',
-    hint: '可在工作区内修改文件、构建、测试；联网、安装、推送需要确认',
-    icon: ShieldCheck,
-  },
-  {
-    value: 'full_permissions',
-    label: '完全权限',
-    hint: '不再请求确认，包括联网、安装、推送、系统级命令',
-    icon: ShieldAlert,
-  },
-];
 
 const AUTO = '__auto__';
 
@@ -203,14 +185,9 @@ export function Composer({
     retry: false,
   });
   const wsData = wsSettings.isError && isUnsupported(wsSettings.error) ? null : wsSettings.data;
-  // 完全权限不被记住：即便工作区默认是它，也要在发送时重新确认
-  const defaultLevel = wsData?.permission_level ?? 'workspace_write';
-  const [level, setLevel] = useState<PermissionLevel>(defaultLevel);
-  useEffect(() => setLevel(defaultLevel), [defaultLevel, sessionId]);
+  const permissionLevel = useCockpitStore((s) => s.permissionLevel);
+  const danger = permissionLevel === 'full_permissions';
   const [asking, setAsking] = useState<string | null>(null);
-  const fleet = useCockpitStore((s) => s.fleet);
-  const isProd = fleet === 'prod';
-  const danger = level === 'full_permissions' || isProd;
 
   useEffect(() => {
     try {
@@ -230,10 +207,9 @@ export function Composer({
   }, [text]);
 
   async function send(message: string, confirmed: boolean) {
-    if (busy) enqueue(sessionId, message, level);
-    else await onSubmit(message, level, confirmed);
+    if (busy) enqueue(sessionId, message, permissionLevel);
+    else await onSubmit(message, permissionLevel, confirmed);
     setText('');
-    setLevel(defaultLevel === 'full_permissions' ? 'workspace_write' : defaultLevel);
     setAsking(null);
   }
 
@@ -245,7 +221,6 @@ export function Composer({
   }
 
   const ready = !!text.trim();
-  const LevelIcon = LEVELS.find((l) => l.value === level)?.icon ?? Shield;
 
   return (
     <div className="mx-auto w-full max-w-[780px] px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:px-5 sm:pb-5">
@@ -320,17 +295,17 @@ export function Composer({
         className={cn(
           'rounded-[24px] border bg-card/95 p-2.5 shadow-float backdrop-blur-2xl transition-all duration-300',
           'focus-within:border-[#2B2A27] dark:focus-within:border-white/40 focus-within:ring-1 focus-within:ring-[#2B2A27]/20',
-          isProd
+          danger
             ? 'border-[#DC2626] shadow-[0_0_15px_rgba(220,38,38,0.08)]'
-            : danger
-              ? 'border-bad/40'
+            : permissionLevel === 'read_only'
+              ? 'border-ok/30'
               : 'border-ink/[0.08] dark:border-white/[0.09]',
         )}
       >
-        {isProd && (
+        {danger && (
           <div className="mb-1.5 flex items-center gap-1.5 px-2.5 py-1 font-mono text-[10.5px] font-semibold text-[#DC2626] border-b border-[#DC2626]/20 bg-[#DC2626]/[0.04] rounded-t-[18px]">
-            <ShieldAlert size={12} className="shrink-0" />
-            <span>PROD 生产核心集群 · 所有写操作受限于高危二次审计</span>
+            <AlertOctagon size={12} className="shrink-0" />
+            <span>高危系统提权模式 (PRIVILEGED) · 所有系统级命令将直接执行 (高危审计)</span>
           </div>
         )}
         <textarea
@@ -353,24 +328,6 @@ export function Composer({
         />
         <div className="mt-1 flex items-center gap-1.5">
           <ModelPicker sessionId={sessionId} workspaceModel={wsData?.model ?? null} />
-          <Select
-            label="权限基线"
-            value={level}
-            onChange={setLevel}
-            placement="up"
-            iconOnly={phone}
-            className={cn(
-              danger && 'border-bad/20 bg-bad/10 text-bad hover:bg-bad/15',
-              level === 'read_only' && 'border-ok/20 bg-ok/10 text-ok hover:bg-ok/15',
-            )}
-            leading={<LevelIcon size={13} />}
-            options={LEVELS.map((l) => ({
-              value: l.value,
-              label: l.label,
-              hint: l.hint,
-              icon: <l.icon size={14} className="text-mute" />,
-            }))}
-          />
           <span className="min-w-0 flex-1" />
           {contextPercent !== null && (
             <ContextRing
@@ -413,17 +370,16 @@ export function Composer({
       </form>
 
       {asking !== null && (
-        <Modal title="以完全权限运行？" onClose={() => setAsking(null)}>
-          <p className="text-sm text-ink">
-            此任务中<strong>所有操作将自动执行，不再询问</strong>
-            ，包括联网、安装依赖、推送代码和系统级命令。 每次任务都要重新确认。
+        <Modal title="以高危系统提权 (PRIVILEGED) 运行？" onClose={() => setAsking(null)}>
+          <p className="text-sm text-ink leading-relaxed">
+            当前处于<strong>高危系统提权 (FULL PRIVILEGED)</strong> 模式，此任务中<strong>所有系统级命令将自动执行，不再发起二次确认</strong>，包括 sudo 提权、服务启停与系统核心文件修改。
           </p>
           <div className="mt-4 flex justify-end gap-2">
             <Button autoFocus onClick={() => setAsking(null)}>
               取消
             </Button>
             <Button variant="danger" onClick={() => void send(asking, true)}>
-              确认
+              确认执行
             </Button>
           </div>
         </Modal>

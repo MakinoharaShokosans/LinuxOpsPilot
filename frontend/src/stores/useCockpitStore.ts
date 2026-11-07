@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import type { PermissionLevel } from '../types/api';
 
 export type FleetEnv = 'local' | 'staging' | 'prod';
 export type TakeoverMode = 'autonomous' | 'human';
@@ -35,7 +36,9 @@ interface CockpitState {
   openArtifact: (title: string, content: string, path?: string) => void;
   closeArtifact: () => void;
 
-  // 3. 目标主机与生产环境隔离
+  // 3. SRE 全局权限安全基线与生产环境隔离
+  permissionLevel: PermissionLevel;
+  setPermissionLevel: (level: PermissionLevel) => void;
   fleet: FleetEnv;
   setFleet: (fleet: FleetEnv) => void;
 
@@ -205,9 +208,20 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
       activeArtifact: { ...s.activeArtifact, open: false },
     })),
 
-  // 3. 目标集群
-  fleet: 'local',
-  setFleet: (fleet) => set({ fleet }),
+  // 3. SRE 全局权限安全基线 (默认工作区安全沙箱)
+  permissionLevel: 'workspace_write',
+  setPermissionLevel: (level) =>
+    set({
+      permissionLevel: level,
+      fleet: level === 'full_permissions' ? 'prod' : level === 'read_only' ? 'local' : 'staging',
+    }),
+  fleet: 'staging',
+  setFleet: (fleet) =>
+    set({
+      fleet,
+      permissionLevel:
+        fleet === 'prod' ? 'full_permissions' : fleet === 'local' ? 'read_only' : 'workspace_write',
+    }),
 
   // 4. 端口雷达
   portRadarOpen: false,
