@@ -97,6 +97,18 @@ describe('SreSettingsModal (Layer 2 原地几何配置视窗)', () => {
     });
   });
 
+  it('switches to prompts section and renders wide blueprint without 3-column clutter', () => {
+    useUiStore.setState({ settingsOpen: true, settingsSection: 'prompts' });
+    renderWithClient(<SreSettingsModal />);
+
+    expect(screen.getByText(/KV CACHE: LOCKED \(75\.5% HIT\)/i)).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: /SRE 核心工作法/i })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: /自定义机房规则/i })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: /内部管道/i })).toBeInTheDocument();
+    expect(screen.getByText(/SRE 核心工作法 \(预置基线\)/i)).toBeInTheDocument();
+    expect(screen.getByText('PRESET · PROTECTED')).toBeInTheDocument();
+  });
+
   it('closes on Escape key press', () => {
     useUiStore.setState({ settingsOpen: true });
     renderWithClient(<SreSettingsModal />);
