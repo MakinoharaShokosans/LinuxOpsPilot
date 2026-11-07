@@ -36,9 +36,14 @@ interface CockpitState {
   openArtifact: (title: string, content: string, path?: string) => void;
   closeArtifact: () => void;
 
-  // 3. SRE 全局权限安全基线与生产环境隔离
+  // 3. SRE 全局权限安全基线与生产环境隔离 (会话级独立隔离)
+  activeSessionId: string | null;
+  setActiveSessionId: (sessionId: string | null) => void;
+  sessionPermissions: Record<string, PermissionLevel>;
+  setPermissionLevel: (level: PermissionLevel, sessionId?: string | null) => void;
+  initSessionPermission: (sessionId: string, level: PermissionLevel) => void;
+  getSessionPermission: (sessionId?: string | null) => PermissionLevel;
   permissionLevel: PermissionLevel;
-  setPermissionLevel: (level: PermissionLevel) => void;
   fleet: FleetEnv;
   setFleet: (fleet: FleetEnv) => void;
 
@@ -141,6 +146,30 @@ const getInitialTerminalHeight = (): number => {
   }
 };
 
+const loadInitialSessionPermissions = (): Record<string, PermissionLevel> => {
+  if (typeof window === 'undefined') return {};
+  try {
+    const raw = localStorage.getItem('linuxops_session_permissions');
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
+    if (parsed && typeof parsed === 'object') {
+      return parsed as Record<string, PermissionLevel>;
+    }
+    return {};
+  } catch {
+    return {};
+  }
+};
+
+const saveSessionPermissions = (permissions: Record<string, PermissionLevel>) => {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.setItem('linuxops_session_permissions', JSON.stringify(permissions));
+  } catch {
+    // ignore
+  }
+};
+
 export const useCockpitStore = create<CockpitState>((set, get) => ({
   // 1. 终端
   terminalOpen: false,
@@ -208,20 +237,81 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
       activeArtifact: { ...s.activeArtifact, open: false },
     })),
 
-  // 3. SRE 全局权限安全基线 (默认工作区安全沙箱)
+  // 3. SRE 全局权限安全基线与生产环境隔离 (会话级独立隔离)
+  activeSessionId: null,
+  sessionPermissions: loadInitialSessionPermissions(),
   permissionLevel: 'workspace_write',
-  setPermissionLevel: (level) =>
-    set({
-      permissionLevel: level,
-      fleet: level === 'full_permissions' ? 'prod' : level === 'read_only' ? 'local' : 'staging',
-    }),
   fleet: 'staging',
-  setFleet: (fleet) =>
+
+  setActiveSessionId: (sessionId) => {
+    const permissions = get().sessionPermissions;
+    const currentSessionLevel = sessionId ? (permissions[sessionId] ?? 'workspace_write') : 'workspace_write';
     set({
-      fleet,
-      permissionLevel:
-        fleet === 'prod' ? 'full_permissions' : fleet === 'local' ? 'read_only' : 'workspace_write',
-    }),
+      activeSessionId: sessionId,
+      permissionLevel: currentSessionLevel,
+      fleet:
+        currentSessionLevel === 'full_permissions'
+          ? 'prod'
+          : currentSessionLevel === 'read_only'
+            ? 'local'
+            : 'staging',
+    });
+  },
+
+  setPermissionLevel: (level, targetSessionId) => {
+    const sid = targetSessionId ?? get().activeSessionId;
+    const nextMap = sid ? { ...get().sessionPermissions, [sid]: level } : get().sessionPermissions;
+    if (sid) {
+      saveSessionPermissions(nextMap);
+    }
+    const isTargetActive = !sid || sid === get().activeSessionId;
+    set({
+      sessionPermissions: nextMap,
+      ...(isTargetActive
+        ? {
+            permissionLevel: level,
+            fleet: level === 'full_permissions' ? 'prod' : level === 'read_only' ? 'local' : 'staging',
+          }
+        : {}),
+    });
+  },
+
+  initSessionPermission: (sessionId, level) => {
+    const existing = get().sessionPermissions[sessionId];
+    if (existing) return;
+    const nextMap = { ...get().sessionPermissions, [sessionId]: level };
+    saveSessionPermissions(nextMap);
+    const isActive = get().activeSessionId === sessionId;
+    set({
+      sessionPermissions: nextMap,
+      ...(isActive
+        ? {
+            permissionLevel: level,
+            fleet:
+              level === 'full_permissions'
+                ? 'prod'
+                : level === 'read_only'
+                  ? 'local'
+                  : 'staging',
+          }
+        : {}),
+    });
+  },
+
+  getSessionPermission: (sessionId) => {
+    const sid = sessionId ?? get().activeSessionId;
+    if (sid) {
+      const existing = get().sessionPermissions[sid];
+      if (existing) return existing;
+    }
+    return get().permissionLevel ?? 'workspace_write';
+  },
+
+  setFleet: (fleet) => {
+    const level: PermissionLevel =
+      fleet === 'prod' ? 'full_permissions' : fleet === 'local' ? 'read_only' : 'workspace_write';
+    get().setPermissionLevel(level);
+  },
 
   // 4. 端口雷达
   portRadarOpen: false,

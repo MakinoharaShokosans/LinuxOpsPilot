@@ -67,4 +67,78 @@ describe('SrePermissionGuard & SreProductionGuardOverlay', () => {
     rerender(<SreProductionGuardOverlay />);
     expect(container.querySelector('.border-\\[\\#DC2626\\]')).toBeNull();
   });
+
+  it('isolates permission levels between different conversation sessions', () => {
+    // 1. Session A is set to full_permissions
+    useCockpitStore.getState().setActiveSessionId('session-a');
+    render(<SrePermissionGuard sessionId="session-a" />);
+    const button = screen.getByRole('button', { name: '选择SRE操作权限基线' });
+
+    act(() => {
+      fireEvent.click(button);
+    });
+    const privilegedOption = screen.getByText(/高危系统提权 \(FULL PRIVILEGED\)/);
+    act(() => {
+      fireEvent.click(privilegedOption);
+    });
+
+    expect(useCockpitStore.getState().sessionPermissions['session-a']).toBe('full_permissions');
+    expect(useCockpitStore.getState().permissionLevel).toBe('full_permissions');
+
+    // 2. Switch to Session B (which has no explicit setting, so it must safely default to workspace_write)
+    act(() => {
+      useCockpitStore.getState().setActiveSessionId('session-b');
+    });
+    expect(useCockpitStore.getState().permissionLevel).toBe('workspace_write');
+
+    // 3. Set Session B to read_only
+    act(() => {
+      useCockpitStore.getState().setPermissionLevel('read_only', 'session-b');
+    });
+    expect(useCockpitStore.getState().sessionPermissions['session-b']).toBe('read_only');
+    expect(useCockpitStore.getState().permissionLevel).toBe('read_only');
+
+    // 4. Session A must strictly remain full_permissions!
+    expect(useCockpitStore.getState().sessionPermissions['session-a']).toBe('full_permissions');
+
+    // 5. Switching back to Session A must restore full_permissions
+    act(() => {
+      useCockpitStore.getState().setActiveSessionId('session-a');
+    });
+    expect(useCockpitStore.getState().permissionLevel).toBe('full_permissions');
+
+    // 6. Switching back to Session B must restore read_only
+    act(() => {
+      useCockpitStore.getState().setActiveSessionId('session-b');
+    });
+    expect(useCockpitStore.getState().permissionLevel).toBe('read_only');
+  });
+
+  it('toggles SreProductionGuardOverlay when switching between privileged and unprivileged sessions', () => {
+    useCockpitStore.getState().setPermissionLevel('full_permissions', 'session-privileged');
+    useCockpitStore.getState().setPermissionLevel('workspace_write', 'session-normal');
+
+    const { container, rerender } = render(<SreProductionGuardOverlay />);
+
+    // In normal session: no overlay
+    act(() => {
+      useCockpitStore.getState().setActiveSessionId('session-normal');
+    });
+    rerender(<SreProductionGuardOverlay />);
+    expect(container.firstChild).toBeNull();
+
+    // Switch to privileged session: red alert overlay appears
+    act(() => {
+      useCockpitStore.getState().setActiveSessionId('session-privileged');
+    });
+    rerender(<SreProductionGuardOverlay />);
+    expect(screen.getByText(/PRIVILEGED 系统提权警戒/)).toBeDefined();
+
+    // Switch back to normal session: red alert overlay immediately clears
+    act(() => {
+      useCockpitStore.getState().setActiveSessionId('session-normal');
+    });
+    rerender(<SreProductionGuardOverlay />);
+    expect(container.querySelector('.border-\\[\\#DC2626\\]')).toBeNull();
+  });
 });

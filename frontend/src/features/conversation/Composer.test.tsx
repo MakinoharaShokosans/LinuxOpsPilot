@@ -114,4 +114,40 @@ describe('Composer Clean Bottom Bar & Global Permission Binding', () => {
 
     expect(onSubmit).toHaveBeenCalledWith('reboot', 'full_permissions', true);
   });
+
+  it('respects per-session permission isolation in Composer', async () => {
+    const onSubmit = vi.fn().mockResolvedValue(undefined);
+    // session s-1 is read_only, while another session s-2 is full_permissions
+    useCockpitStore.getState().setPermissionLevel('read_only', 's-1');
+    useCockpitStore.getState().setPermissionLevel('full_permissions', 's-2');
+
+    renderWithClient(
+      <Composer
+        sessionId="s-1"
+        workspaceId="ws-1"
+        busy={false}
+        contextPercent={null}
+        contextTokens={null}
+        contextLimit={null}
+        onCancel={vi.fn()}
+        onSubmit={onSubmit}
+      />,
+    );
+
+    // Should NOT show critical warning banner for s-1
+    expect(screen.queryByText(/高危系统提权模式/)).toBeNull();
+
+    const input = screen.getByLabelText('消息');
+    act(() => {
+      fireEvent.change(input, { target: { value: 'df -h' } });
+    });
+
+    const sendBtn = screen.getByRole('button', { name: '发送' });
+    await act(async () => {
+      fireEvent.click(sendBtn);
+    });
+
+    // Submits with s-1's isolated permission level (read_only)
+    expect(onSubmit).toHaveBeenCalledWith('df -h', 'read_only', false);
+  });
 });

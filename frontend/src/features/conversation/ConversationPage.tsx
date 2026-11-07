@@ -155,6 +155,22 @@ export function ConversationPage() {
     if (useAppStore.getState().runSession !== sessionId) detach();
   }, [sessionId, detach]);
 
+  // 会话独立权限隔离：激活当前会话的独立权限状态，离开时重置为安全默认
+  useEffect(() => {
+    if (sessionId) {
+      useCockpitStore.getState().setActiveSessionId(sessionId);
+    }
+    return () => {
+      useCockpitStore.getState().setActiveSessionId(null);
+    };
+  }, [sessionId]);
+
+  // 若当前会话尚未手动设定权限，且存在历史最新任务，则自动继承该会话历史任务的权限基线
+  useEffect(() => {
+    if (!sessionId || !latest?.permission_level) return;
+    useCockpitStore.getState().initSessionPermission(sessionId, latest.permission_level);
+  }, [sessionId, latest?.permission_level]);
+
   // 记住位置，供根路径返回
   useEffect(() => {
     if (sessionId) rememberLocation(sessionId, workspaceId);
@@ -374,8 +390,8 @@ export function ConversationPage() {
             )}
           </nav>
           <div className="ml-auto flex shrink-0 items-center gap-2">
-            {/* 全局 SRE 权限安全基线与全屏护栏 (只读取证 / 工作区读写 / 高危系统提权) */}
-            <SrePermissionGuard />
+            {/* 全局 SRE 权限安全基线与全屏护栏 (按会话独立隔离：只读取证 / 工作区读写 / 高危系统提权) */}
+            <SrePermissionGuard sessionId={sessionId} />
 
             {/* 存储压力槽条 (/ 22% | /boot 47%) */}
             <div className="hidden 2xl:flex items-center">

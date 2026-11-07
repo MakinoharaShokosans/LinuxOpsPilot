@@ -65,9 +65,17 @@ export const PERMISSION_CONFIGS: Record<PermissionLevel, SrePermissionConfig> = 
 /**
  * SRE 智能作战指挥舱 · 顶栏权限安全基线组件 (SrePermissionGuard)
  * 纯矢量 SVG 状态徽标 + 几何微气泡 + 下拉 1px 线框权限矩阵
+ * 支持按当前会话 (sessionId) 独立隔离权限状态
  */
-export function SrePermissionGuard() {
-  const { permissionLevel, setPermissionLevel } = useCockpitStore();
+export function SrePermissionGuard({ sessionId }: { sessionId?: string } = {}) {
+  const activeSessionId = useCockpitStore((s) => s.activeSessionId);
+  const currentSessionId = sessionId ?? activeSessionId;
+  const sessionPermissions = useCockpitStore((s) => s.sessionPermissions);
+  const globalLevel = useCockpitStore((s) => s.permissionLevel);
+  const setPermissionLevel = useCockpitStore((s) => s.setPermissionLevel);
+
+  const permissionLevel =
+    (currentSessionId ? sessionPermissions[currentSessionId] : null) ?? globalLevel ?? 'workspace_write';
   const [open, setOpen] = useState(false);
   const anchorRef = useRef<HTMLDivElement | null>(null);
 
@@ -122,7 +130,7 @@ export function SrePermissionGuard() {
                       <button
                         key={item.key}
                         onClick={() => {
-                          setPermissionLevel(item.key);
+                          setPermissionLevel(item.key, currentSessionId);
                           setOpen(false);
                         }}
                         className={cn(

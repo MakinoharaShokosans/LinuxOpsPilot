@@ -185,7 +185,9 @@ export function Composer({
     retry: false,
   });
   const wsData = wsSettings.isError && isUnsupported(wsSettings.error) ? null : wsSettings.data;
-  const permissionLevel = useCockpitStore((s) => s.permissionLevel);
+  const permissionLevel = useCockpitStore(
+    (s) => (sessionId ? s.sessionPermissions[sessionId] : null) ?? s.permissionLevel,
+  );
   const danger = permissionLevel === 'full_permissions';
   const [asking, setAsking] = useState<string | null>(null);
 
