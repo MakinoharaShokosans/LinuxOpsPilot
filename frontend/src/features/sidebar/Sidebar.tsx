@@ -165,8 +165,22 @@ export function Sidebar({ collapsedRail = false }: { collapsedRail?: boolean }) 
 
   const q = query.trim().toLowerCase();
 
-  const visibleSessions = sortedSessions.filter((s) => !s.archived);
-  const archivedSessions = sortedSessions.filter((s) => s.archived);
+  const attentionIds = useMemo(
+    () => new Set(attention.map((x) => x.session.session_id)),
+    [attention],
+  );
+
+  const visibleSessions = useMemo(
+    () =>
+      sortedSessions.filter(
+        (s) => !s.archived && (collapsedRail ? true : !attentionIds.has(s.session_id)),
+      ),
+    [sortedSessions, collapsedRail, attentionIds],
+  );
+  const archivedSessions = useMemo(
+    () => sortedSessions.filter((s) => s.archived),
+    [sortedSessions],
+  );
   const filteredSessions = q
     ? sortedSessions.filter((s) =>
         sessionTitle(s, activity[s.session_id]).toLowerCase().includes(q),
@@ -275,7 +289,7 @@ export function Sidebar({ collapsedRail = false }: { collapsedRail?: boolean }) 
         </Reveal>
       )}
 
-      {attention.length > 0 && (
+      {!q && attention.length > 0 && (
         collapsedRail ? (
           <div className="relative flex justify-center px-2 py-1">
             <IconButton
@@ -291,7 +305,7 @@ export function Sidebar({ collapsedRail = false }: { collapsedRail?: boolean }) 
             </IconButton>
           </div>
         ) : (
-          <div className="px-2 pb-1.5">
+          <div className="px-2 pb-2 mb-1 border-b border-ink/[0.06] dark:border-white/[0.06]">
             <div className="flex items-center gap-1.5 px-2 py-1 text-2xs font-semibold text-warn">
               <ShieldAlert size={13} />
               <span>待处理 ({attention.length})</span>
@@ -303,16 +317,19 @@ export function Sidebar({ collapsedRail = false }: { collapsedRail?: boolean }) 
                   session={s}
                   activity={a}
                   current={s.session_id === params.sessionId}
-                  editing={false}
+                  editing={editingSession === s.session_id}
                   collapsed={false}
                   onOpen={() => go(s.session_id)}
-                  onRename={() => undefined}
-                  onStartRename={() => undefined}
-                  onCancelRename={() => undefined}
-                  onPin={() => undefined}
-                  onArchive={() => undefined}
-                  onFork={() => undefined}
-                  onDelete={() => undefined}
+                  onRename={(title) => {
+                    setEditingSession(null);
+                    patch.mutate({ session: s, body: { title } });
+                  }}
+                  onStartRename={() => setEditingSession(s.session_id)}
+                  onCancelRename={() => setEditingSession(null)}
+                  onPin={() => patch.mutate({ session: s, body: { pinned: !s.pinned } })}
+                  onArchive={() => patch.mutate({ session: s, body: { archived: !s.archived } })}
+                  onFork={() => fork.mutate(s)}
+                  onDelete={() => setDeletingSession(s)}
                 />
               ))}
             </div>
