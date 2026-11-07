@@ -203,6 +203,7 @@ export function subscribeGlobal(options: {
   sleep?: (ms: number) => Promise<void>;
   onEvent: (event: GlobalEventPayload) => void;
   onState?: (state: ConnectionState) => void;
+  headers?: () => Record<string, string>;
 }): SseHandle {
   const url = options.url ?? '/api/v1/events';
   const fetchImpl = options.fetchImpl ?? ((...args) => fetch(...args));
@@ -215,7 +216,10 @@ export function subscribeGlobal(options: {
       options.onState?.(attempt === 0 ? 'connecting' : 'reconnecting');
       try {
         const response = await fetchImpl(url, {
-          headers: { Accept: 'text/event-stream' },
+          headers: {
+            Accept: 'text/event-stream',
+            ...(options.headers?.() ?? {}),
+          },
           signal: controller.signal,
         });
         if (!response.ok || !response.body) {

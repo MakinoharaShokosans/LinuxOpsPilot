@@ -25,6 +25,7 @@ import {
 import { motion } from 'motion/react';
 import { useEffect, useMemo, useState } from 'react';
 import { api } from '../../api/endpoints';
+import { http } from '../../api/http';
 import { subscribeGlobal } from '../../api/sse';
 import {
   hasSessionMeta,
@@ -86,7 +87,7 @@ export function Sidebar({ collapsedRail = false }: { collapsedRail?: boolean }) 
         .map((s) => s.session_id),
     [sortedSessions],
   );
-  const activity = useSessionActivity(watched);
+  const activity = useSessionActivity(watched, params.sessionId);
 
   const attention = useMemo(() => {
     const out: { session: Session; activity: Activity }[] = [];
@@ -113,6 +114,7 @@ export function Sidebar({ collapsedRail = false }: { collapsedRail?: boolean }) 
   // 全局事件流：跨会话/任务状态变更时实时失效缓存并更新侧栏
   useEffect(() => {
     const handle = subscribeGlobal({
+      headers: () => http.headers(),
       onEvent: (ev) => {
         const data = (ev.data || {}) as Record<string, unknown>;
         const sessionId = (data.session_id as string) || undefined;

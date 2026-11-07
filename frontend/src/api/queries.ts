@@ -36,28 +36,36 @@ export interface Activity {
 
 const IDLE: Activity = { status: null, goal: '', at: 0 };
 
-/** 一批会话各自最近一个任务的状态，轮询刷新；页面不可见时暂停 */
-export function useSessionActivity(sessionIds: string[]): Record<string, Activity> {
+/** 一批会话各自最近一个任务的状态；当前活跃会话通过专属 SSE 直连，无需后台短轮询 */
+export function useSessionActivity(
+  sessionIds: string[],
+  activeSessionId?: string | null,
+): Record<string, Activity> {
   const results = useQueries({
-    queries: sessionIds.map((id) => ({
-      queryKey: ['activity', id],
-      queryFn: async (): Promise<Activity> => {
-        const [latest] = await api.sessions.tasks(id, 1);
-        return latest
-          ? {
-              status: latest.status,
-              goal: latest.task_goal,
-              at: latest.finished_at ?? latest.created_at,
-            }
-          : IDLE;
-      },
-      refetchInterval: (query: { state: { data?: Activity } }) => {
-        if (typeof document !== 'undefined' && document.hidden) return false;
-        const s = query.state.data?.status;
-        return s === 'running' || s === 'queued' || s === 'waiting_for_approval' ? 2500 : 12000;
-      },
-      staleTime: 2000,
-    })),
+    queries: sessionIds.map((id) => {
+      const isActive = !!activeSessionId && id === activeSessionId;
+      return {
+        queryKey: ['activity', id],
+        queryFn: async (): Promise<Activity> => {
+          const [latest] = await api.sessions.tasks(id, 1);
+          return latest
+            ? {
+                status: latest.status,
+                goal: latest.task_goal,
+                at: latest.finished_at ?? latest.created_at,
+              }
+            : IDLE;
+        },
+        refetchInterval: (query: { state: { data?: Activity } }) => {
+          if (typeof document !== 'undefined' && document.hidden) return false;
+          // 当前处于活跃检视状态的会话已有专属实时 SSE 直连，严禁在后台发起高频短轮询风暴
+          if (isActive) return false;
+          const s = query.state.data?.status;
+          return s === 'running' || s === 'queued' || s === 'waiting_for_approval' ? 10000 : 30000;
+        },
+        staleTime: 10000,
+      };
+    }),
   });
   const out: Record<string, Activity> = {};
   sessionIds.forEach((id, i) => {

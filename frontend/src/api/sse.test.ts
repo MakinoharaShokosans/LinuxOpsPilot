@@ -235,5 +235,25 @@ describe('subscribeGlobal', () => {
     await handle.done;
     expect(states.at(-1)).toBe('closed');
   });
+
+  it('passes authorization headers to global stream', async () => {
+    let capturedHeaders: Record<string, string> | undefined;
+    const handle = subscribeGlobal({
+      url: '/api/v1/events',
+      headers: () => ({ Authorization: 'Bearer test-token-123' }),
+      fetchImpl: async (_url, init) => {
+        capturedHeaders = init?.headers as Record<string, string>;
+        return streamOf([': ping\n\n'], false);
+      },
+      onEvent: () => undefined,
+    });
+
+    await new Promise((r) => setTimeout(r, 20));
+    expect(capturedHeaders?.['Authorization']).toBe('Bearer test-token-123');
+    expect(capturedHeaders?.['Accept']).toBe('text/event-stream');
+
+    handle.close();
+    await handle.done;
+  });
 });
 
